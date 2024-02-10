@@ -72,7 +72,7 @@ exports:
         sensor_type: sensor
         register: daily_power_yields
         device_class: energy
-        state_class: total_increasing
+        state_class: total
         icon: "mdi:solar-power"
       - name: "Daily Export to Grid"
         sensor_type: sensor
