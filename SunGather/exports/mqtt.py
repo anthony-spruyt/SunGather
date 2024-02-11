@@ -114,7 +114,7 @@ class export_mqtt(object):
                 config_msg['device'] = ha_device
 
                 # <discovery_prefix>/<component>/<object_id>/config
-                ha_topic = f"homeassistant/{ha_sensor.get('sensor_type')}/{self.serial_number}_{self.cleanName(ha_sensor.get('name'))}/config"
+                ha_topic = f"homeassistant/{ha_sensor.get('sensor_type')}/{self.serial_number}/{self.serial_number}_{self.cleanName(ha_sensor.get('name'))}/config"
                 logging.debug(f'MQTT: Topic; {ha_topic}, Message: {config_msg}')
                 self.mqtt_queue.append(self.mqtt_client.publish(ha_topic, json.dumps(config_msg), retain=True, qos=1).mid)
             self.ha_discovery_published = True
