@@ -13,7 +13,7 @@ setuptools.setup(
     description="Collect data from Sungrow Inverters and feed to various locations (MQTT, PVOutput, Home Assistant)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/bohdan-s/SunGather",
+    url="https://github.com/anthony-spruyt/SunGather",
     packages=setuptools.find_packages(),
     install_requires=[
         'pymodbus>=2.3.0',

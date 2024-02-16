@@ -15,9 +15,9 @@
     Collect data from Sungrow Inverters using ModbusTcpClient, <a href="https://github.com/rpvelloso/Sungrow-Modbus">SungrowModbusTcpClient</a> or <a href="https://github.com/bohdan-s/SungrowModbusWebClient">SungrowModbusWebClient</a> and export to various locations.
     <br />
     <br />
-    <a href="https://github.com/bohdan-s/SunGather/issues">Report Bug</a>
+    <a href="https://github.com/anthony-spruyt/SunGather/issues">Report Bug</a>
     ·
-    <a href="https://github.com/bohdan-s/SunGather/issues">Request Feature</a>
+    <a href="https://github.com/anthony-spruyt/SunGather/issues">Request Feature</a>
   </p>
 </div>
 
@@ -70,7 +70,7 @@ I have learned a lot from the following projects, THANK YOU
 ## Getting Started
 # Local
 ```sh
-git clone https://github.com/bohdan-s/SunGather.git
+git clone https://github.com/anthony-spruyt/SunGather.git
 cd SunGather
 pip3 install --upgrade -r requirements.txt
 ```
@@ -276,12 +276,12 @@ Project Link: [https://github.com/bohdan-s/SungrowModbusWebClient](https://githu
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/bohdan-s/SunGather.svg?style=for-the-badge
-[contributors-url]: https://github.com/bohdan-s/SunGather/graphs/contributors
+[contributors-url]: https://github.com/anthony-spruyt/SunGather/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/bohdan-s/SunGather.svg?style=for-the-badge
-[forks-url]: https://github.com/bohdan-s/SunGather/network/members
+[forks-url]: https://github.com/anthony-spruyt/SunGather/network/members
 [stars-shield]: https://img.shields.io/github/stars/bohdan-s/SunGather.svg?style=for-the-badge
-[stars-url]: https://github.com/bohdan-s/SunGather/stargazers
+[stars-url]: https://github.com/anthony-spruyt/SunGather/stargazers
 [issues-shield]: https://img.shields.io/github/issues/bohdan-s/SunGather.svg?style=for-the-badge
-[issues-url]: https://github.com/bohdan-s/SunGather/issues
+[issues-url]: https://github.com/anthony-spruyt/SunGather/issues
 [license-shield]: https://img.shields.io/github/license/bohdan-s/SunGather.svg?style=for-the-badge
-[license-url]: https://github.com/bohdan-s/SunGather/blob/main/LICENSE.txt
+[license-url]: https://github.com/anthony-spruyt/SunGather/blob/main/LICENSE.txt

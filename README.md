@@ -17,9 +17,9 @@
     <br />
     <a href="https://sungather.net">Website Sungather.net</a>
     ·
-    <a href="https://github.com/bohdan-s/SunGather/issues">Report Bug</a>
+    <a href="https://github.com/anthony-spruyt/SunGather/issues">Report Bug</a>
     ·
-    <a href="https://github.com/bohdan-s/SunGather/issues">Request Feature</a>
+    <a href="https://github.com/anthony-spruyt/SunGather/issues">Request Feature</a>
   </p>
 </div>
 
@@ -28,7 +28,7 @@
 
 <b>Join the Discord Server to discuss, suggestions or for any help: <a href="https://discord.gg/7j2MVsT5wn">SunGather Discord</a></b>
 
-<b>If you are looking for the HomeAssistant Addon, see: <a href="https://github.com/bohdan-s/hassio-repository">Hassio Repository</a></b>
+<b>If you are looking for the HomeAssistant Addon, see: <a href="https://github.com/anthony-spruyt/hassio-repository">Hassio Repository</a></b>
 
 Access ModBus data from almost any network connected Sungrow Inverter.
 
@@ -74,7 +74,7 @@ I have learned a lot from the following projects, THANK YOU
 ## Getting Started
 ### Local
 ```sh
-git clone https://github.com/bohdan-s/SunGather.git
+git clone https://github.com/anthony-spruyt/SunGather.git
 cd SunGather
 pip3 install --upgrade -r requirements.txt
 ```
@@ -173,7 +173,7 @@ For SG* Models this is calculated from meter_power if -ve value, returned as a p
 ### Home Assistant setup
 
 #### The following are manual steps if you are running SunGather separate,
-#### For the easy way see: <a href="https://github.com/bohdan-s/hassio-repository">Hassio Repository</a></b>
+#### For the easy way see: <a href="https://github.com/anthony-spruyt/hassio-repository">Hassio Repository</a></b>
 
 
 In the SunGather config.yaml you need to set the smart_meter if you have one  
@@ -253,7 +253,7 @@ Distributed under the GPL3 License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Project Link: [https://github.com/bohdan-s/SunGather](https://github.com/bohdan-s/SunGather)
+Project Link: [https://github.com/anthony-spruyt/SunGather](https://github.com/anthony-spruyt/SunGather)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -271,12 +271,12 @@ Project Link: [https://github.com/bohdan-s/SunGather](https://github.com/bohdan-
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [contributors-shield]: https://img.shields.io/github/contributors/bohdan-s/SunGather.svg?style=for-the-badge
-[contributors-url]: https://github.com/bohdan-s/SunGather/graphs/contributors
+[contributors-url]: https://github.com/anthony-spruyt/SunGather/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/bohdan-s/SunGather.svg?style=for-the-badge
-[forks-url]: https://github.com/bohdan-s/SunGather/network/members
+[forks-url]: https://github.com/anthony-spruyt/SunGather/network/members
 [stars-shield]: https://img.shields.io/github/stars/bohdan-s/SunGather.svg?style=for-the-badge
-[stars-url]: https://github.com/bohdan-s/SunGather/stargazers
+[stars-url]: https://github.com/anthony-spruyt/SunGather/stargazers
 [issues-shield]: https://img.shields.io/github/issues/bohdan-s/SunGather.svg?style=for-the-badge
-[issues-url]: https://github.com/bohdan-s/SunGather/issues
+[issues-url]: https://github.com/anthony-spruyt/SunGather/issues
 [license-shield]: https://img.shields.io/github/license/bohdan-s/SunGather.svg?style=for-the-badge
-[license-url]: https://github.com/bohdan-s/SunGather/blob/main/LICENSE.txt
+[license-url]: https://github.com/anthony-spruyt/SunGather/blob/main/LICENSE.txt
