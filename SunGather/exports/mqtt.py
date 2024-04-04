@@ -33,7 +33,7 @@ class export_mqtt(object):
             logging.info(f"MQTT: Host config is required")
             return False
         client_id = self.mqtt_config['client_id']
-        self.mqtt_client = mqtt.Client(client_id)
+        self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id)
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_publish = self.on_publish
@@ -57,13 +57,20 @@ class export_mqtt(object):
     
         return True
 
-    def on_connect(self, client, userdata, flags, rc):
-        logging.info(f"MQTT: Connected to {client._host}:{client._port}")
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
+            logging.info(f"MQTT: Connected to {client._host}:{client._port}")
+        if reason_code > 0:
+            logging.warn(f"MQTT: FAILED to connect {client._host}:{client._port}")
 
-    def on_disconnect(self, client, userdata, rc):
-        logging.info(f"MQTT: Server Disconnected code: {rc}")
+    def on_disconnect(self, client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
+            logging.info(f"MQTT: Server Disconnected")
+        if reason_code > 0:
+            logging.warn(f"MQTT: FAILED to disconnect {reason_code}")
+        
     
-    def on_publish(self, client, userdata, mid):
+    def on_publish(self, client, userdata, mid, reason_codes, properties):
         try:
             self.mqtt_queue.remove(mid)
         except Exception as err:
@@ -114,7 +121,7 @@ class export_mqtt(object):
                 config_msg['device'] = ha_device
 
                 # <discovery_prefix>/<component>/<object_id>/config
-                ha_topic = f"homeassistant/{ha_sensor.get('sensor_type')}/{self.serial_number}/{self.serial_number}_{self.cleanName(ha_sensor.get('name'))}/config"
+                ha_topic = f"homeassistant/{ha_sensor.get('sensor_type')}/{self.serial_number}_{self.cleanName(ha_sensor.get('name'))}/config"
                 logging.debug(f'MQTT: Topic; {ha_topic}, Message: {config_msg}')
                 self.mqtt_queue.append(self.mqtt_client.publish(ha_topic, json.dumps(config_msg), retain=True, qos=1).mid)
             self.ha_discovery_published = True
