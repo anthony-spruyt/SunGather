@@ -27,7 +27,7 @@ class export_webserver(object):
         pending_config = False
         config_body = f"""
             <h3>SunGather v{__version__}</h3></p>
-            <h4>Configuration changes require a restart to take effect!</h4>    
+            <h4>Configuration changes require a restart to take effect!</h4>
             <form action="/config">
             <label>Inverter Settings:</label><br>
             <table><tr><th>Option</th><th>Setting</th><th>Update?</th></tr>
@@ -39,7 +39,7 @@ class export_webserver(object):
         for setting, value in inverter.inverter_config.items():
             config_body += f'<tr><td><label for="{str(setting)}">{str(setting)}:</label></td>'
             config_body += f'<td><input type="text" id="{str(setting)}" name="{str(setting)}" value="{str(value)}"></td>'
-            config_body += f'<td><input type="checkbox" id="update_{str(setting)}" name="update_{str(setting)}" value="False"></td></tr>' 
+            config_body += f'<td><input type="checkbox" id="update_{str(setting)}" name="update_{str(setting)}" value="False"></td></tr>'
         #config_body += f'</table><input type="submit" value="Submit"></form>'
         config_body += f'</table>Currently ReadOnly, No save function yet :(</form>'
         export_webserver.config = config_body

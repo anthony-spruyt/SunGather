@@ -43,7 +43,7 @@ class export_hassio(object):
         self.batch_count = 0
         self.last_run = 0
         self.last_publish = 0
-        
+
         for parameter in config.get('parameters'):
             if not inverter.validateRegister(parameter['register']):
                 logging.error(f"PVOutput: Configured to use {parameter['register']} but not configured to scrape this register")
@@ -69,7 +69,7 @@ class export_hassio(object):
                         break
             else:
                 logging.error(f"PVOutput: System Status Failed; {str(response.status_code)} Message; {str(response.content)}")
-        
+
         except Exception as err:
             logging.error(f"PVOutput: Failed to configure")
             logging.debug(f"{err}")
@@ -83,7 +83,7 @@ class export_hassio(object):
             elif team_member and not self.pvoutput_config['join_team']:
                 logging.debug(f"PVOutput: Leave Team; {self.url_leaveteam}, {str(self.headers)}, 'tid': '{self.tid}'")
                 response = requests.post(url=self.url_leaveteam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")  
+                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")
         except Exception as err:
             pass
 

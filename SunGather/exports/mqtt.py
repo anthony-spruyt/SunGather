@@ -43,7 +43,7 @@ class export_mqtt(object):
 
         if self.mqtt_config['port'] == 8883:
             self.mqtt_client.tls_set()
-        
+
         self.mqtt_client.connect_async(self.mqtt_config['host'], port=self.mqtt_config['port'], keepalive=60)
         self.mqtt_client.loop_start()
 
@@ -54,7 +54,7 @@ class export_mqtt(object):
                     return False
                 else:
                     self.ha_sensors.append(ha_sensor)
-    
+
         return True
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
@@ -68,8 +68,8 @@ class export_mqtt(object):
             logging.info(f"MQTT: Server Disconnected")
         if reason_code > 0:
             logging.warn(f"MQTT: FAILED to disconnect {reason_code}")
-        
-    
+
+
     def on_publish(self, client, userdata, mid, reason_codes, properties):
         try:
             self.mqtt_queue.remove(mid)
@@ -117,7 +117,7 @@ class export_mqtt(object):
                 if ha_sensor.get('register', False):
                     if inverter.getRegisterUnit(ha_sensor.get('register')):
                         config_msg['unit_of_measurement'] = inverter.getRegisterUnit(ha_sensor.get('register'))
-                
+
                 config_msg['device'] = ha_device
 
                 # <discovery_prefix>/<component>/<object_id>/config

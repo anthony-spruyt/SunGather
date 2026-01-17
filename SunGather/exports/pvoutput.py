@@ -7,7 +7,7 @@ import time
     See: https://pvoutput.org/help/api_specification.html#add-status-service
     Parameter   Field               Required    Format      Unit    Example     Donation
     d           Output Date         Yes         yyyymmdd    date    20210228
-    t           Time                Yes         hh:mm       time    14:00   
+    t           Time                Yes         hh:mm       time    14:00
     v1          Energy Generation   No          number      wh      10000
     v2          Power Generation    No          number      watts   2000
     v3          Energy Consumption  No          number      wh      10000
@@ -20,7 +20,7 @@ import time
     # 2 - Only v1 generation is a lifetime energy value.
     # 3 - Only v3 consumption is a lifetime energy value.
     n           Net Flag            No          number              1
-    # n parameter when set to 1 will indicate that the power values passed are net export/import rather than gross generation/consumption. This option is used for devices that are unable to report gross consumption data. The provided import/export data is merged with existing generation data to derive consumption.	
+    # n parameter when set to 1 will indicate that the power values passed are net export/import rather than gross generation/consumption. This option is used for devices that are unable to report gross consumption data. The provided import/export data is merged with existing generation data to derive consumption.
     v7          Extended Value v7   No          number      User Defined    Yes
     v8          Extended Value v8   No          number      User Defined    Yes
     v9          Extended Value v9   No          number      User Defined    Yes
@@ -65,7 +65,7 @@ class export_pvoutput(object):
         self.batch_count = 0
         self.last_run = 0
         self.last_publish = 0
-        
+
         for parameter in config.get('parameters'):
             if not inverter.validateRegister(parameter['register']):
                 logging.error(f"PVOutput: Configured to use {parameter['register']} but not configured to scrape this register")
@@ -91,7 +91,7 @@ class export_pvoutput(object):
                         break
             else:
                 logging.error(f"PVOutput: System Status Failed; {str(response.status_code)} Message; {str(response.content)}")
-        
+
         except Exception as err:
             logging.error(f"PVOutput: Failed to configure")
             logging.debug(f"{err}")
@@ -105,7 +105,7 @@ class export_pvoutput(object):
             elif team_member and not self.pvoutput_config['join_team']:
                 logging.debug(f"PVOutput: Leave Team; {self.url_leaveteam}, {str(self.headers)}, 'tid': '{self.tid}'")
                 response = requests.post(url=self.url_leaveteam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")  
+                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")
         except Exception as err:
             pass
 

@@ -1,9 +1,8 @@
 name: Send submodule updates to parent repo
 
+# Disabled - not using HA addon. Changed to manual-only trigger.
 on:
-  push:
-    branches: 
-      - main
+  workflow_dispatch:
 
 jobs:
   update:
@@ -11,7 +10,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with: 
+        with:
           repository: bohdan-s/hassio-repository
           token: ${{ secrets.REPO_TOKEN }}
           submodules: true
