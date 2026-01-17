@@ -44,17 +44,17 @@ def main():
         elif opt == '-r':
             registersfilename = arg
         elif opt == '-l':
-            logfolder = arg    
+            logfolder = arg
         elif opt  == '-v':
             if arg.isnumeric():
                 if int(arg) >= 0 and int(arg) <= 50:
                     loglevel = int(arg)
                 else:
                     logging.error(f"Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
-                    sys.exit(2)        
+                    sys.exit(2)
             else:
                 logging.error(f"Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
-                sys.exit(2) 
+                sys.exit(2)
         elif opt == '--runonce':
             runonce = True
 
@@ -70,7 +70,7 @@ def main():
         sys.exit(1)
     if not configfile.get('inverter'):
         logging.error(f"Failed Loading config, missing Inverter settings")
-        sys.exit(f"Failed Loading config, missing Inverter settings")   
+        sys.exit(f"Failed Loading config, missing Inverter settings")
 
     try:
         registersfile = yaml.safe_load(open(registersfilename, encoding="utf-8"))
@@ -79,7 +79,7 @@ def main():
     except Exception as err:
         logging.error(f"Failed: Loading registers: {registersfilename}  {err}")
         sys.exit(f"Failed: Loading registers: {registersfilename} {err}")
-   
+
     config_inverter = {
         "host": configfile['inverter'].get('host',None),
         "port": configfile['inverter'].get('port',502),
@@ -114,8 +114,8 @@ def main():
     logging.info(f"Logging to console set to: {logging.getLevelName(logger.handlers[0].level)}")
     if logger.handlers.__len__() == 3:
         logging.info(f"Logging to file set to: {logging.getLevelName(logger.handlers[2].level)}")
-    
-    logging.debug(f'Inverter Config Loaded: {config_inverter}')    
+
+    logging.debug(f'Inverter Config Loaded: {config_inverter}')
 
     if config_inverter.get('host'):
         inverter = SungrowClient.SungrowClient(config_inverter)
@@ -125,11 +125,11 @@ def main():
 
     if not inverter.checkConnection():
         logging.error(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
-        sys.exit(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")       
+        sys.exit(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
 
     inverter.configure_registers(registersfile)
     if not inverter.inverter_config['connection'] == "http": inverter.close()
-    
+
     # Now we know the inverter is working, lets load the exports
     exports = []
     if configfile.get('exports'):
@@ -175,14 +175,14 @@ def main():
 
         if 'runonce' in locals():
             sys.exit(0)
-        
+
         # Sleep until the next scan
         if scan_interval - process_time <= 1:
             logging.warning(f"SunGather is taking {process_time} to process, which is longer than interval {scan_interval}, Please increase scan interval")
             time.sleep(process_time)
         else:
             logging.info(f'Next scrape in {int(scan_interval - process_time)} secs')
-            time.sleep(scan_interval - process_time)    
+            time.sleep(scan_interval - process_time)
 
 def handle_sigterm(signum, frame):
     print("Received SIGTERM, shutting down gracefully...")
