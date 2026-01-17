@@ -1,4 +1,4 @@
-FROM python:3.13 AS builder
+FROM python:3.14 AS builder
 
 RUN python3 -m venv /opt/virtualenv \
  && apt-get update \
@@ -8,7 +8,7 @@ RUN python3 -m venv /opt/virtualenv \
 COPY requirements.txt ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir -r requirements.txt
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 RUN useradd -r -m sungather
 
