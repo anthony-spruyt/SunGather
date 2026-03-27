@@ -1,3 +1,5 @@
+# SunGather
+
 <div id="top"></div>
 
 [![Contributors][contributors-shield]][contributors-url]
@@ -31,7 +33,9 @@ Access ModBus data from almost any network connected Sungow Inverter.
 
 On first connection the tool will query your inverter, retrieve the model and return the correct registers for your device. No more searching registers or creating model files.
 
-Register information based on official documentation: <a href="https://github.com/bohdan-s/Sungrow-Inverter/blob/main/Modbus%20Information/Communication%20Protocol%20of%20PV%20Grid-Connected%20String%20Inverters_V1.1.37_EN.pdf">Communication Protocol of PV Grid-Connected String Inverters</a> and <a href="https://github.com/bohdan-s/Sungrow-Inverter/blob/main/Modbus%20Information/communication-protocol-of-residential-hybrid-inverterv1.0.20-1.pdf">Communication Protocol of Residential Hybrid Inverters</a>
+Register information based on official documentation:
+[Communication Protocol of PV Grid-Connected String Inverters](https://github.com/bohdan-s/Sungrow-Inverter/blob/main/Modbus%20Information/Communication%20Protocol%20of%20PV%20Grid-Connected%20String%20Inverters_V1.1.37_EN.pdf)
+and [Communication Protocol of Residential Hybrid Inverters](https://github.com/bohdan-s/Sungrow-Inverter/blob/main/Modbus%20Information/communication-protocol-of-residential-hybrid-inverterv1.0.20-1.pdf)
 
 Has multiple export locations out of the box:
 
@@ -75,7 +79,7 @@ I have learned a lot from the following projects, THANK YOU
 
 ## Getting Started
 
-# Local
+### Local
 
 ```sh
 git clone https://github.com/bohdan-s/SunGather.git
@@ -95,7 +99,7 @@ Run SunGather:
 python3 sungather.py
 ```
 
-# Docker
+### Docker
 
 docker run options:  
 -v {path to}/config.yaml:/config/config.yaml <- Set Config File Location  
@@ -186,13 +190,13 @@ This is just a brief list of registers I have found useful
 
 In the SunGather config.yaml you need to set the smart_meter if you have one;
 
-```
+```yaml
 smart_meter: True
 ```
 
 HA sensors created by the MQTT auto-discovery;
 
-```
+```text
 sensor.inverter_active_power
 sensor.inverter_daily_generation
 sensor.inverter_export_to_grid
@@ -206,7 +210,7 @@ The Inverter reports Power (W), but HA needs Energy (Wh).
 You can use a "Riemann sum integral" (called integration) to convert it.
 Put the following into your sensors.yaml
 
-```
+```yaml
 sensor:
   - platform: integration
     source: sensor.inverter_active_power
@@ -246,7 +250,14 @@ Solar Panels > Solar Production -> Solar Production (Sungather)
 
 ### PV Grid-Connected String Inverters
 
-SG30KTL, SG10KTL, SG12KTL, SG15KTL, SG20KTL, SG30KU, SG36KTL, SG36KU, SG40KTL, SG40KTL-M, SG50KTL-M, SG60KTL-M, SG60KU, SG30KTL-M, SG30KTL-M-V31, SG33KTL-M, SG36KTL-M, SG33K3J, SG49K5J, SG34KJ, LP_P34KSG, SG50KTL-M-20, SG60KTL, SG80KTL, SG80KTL-20, SG60KU-M, SG5KTL-MT, SG6KTL-MT, SG8KTL-M, SG10KTL-M, SG10KTL-MT, SG12KTL-M, SG15KTL-M, SG17KTL-M, SG20KTL-M, SG80KTL-M, SG111HV, SG125HV, SG125HV-20, SG30CX, SG33CX, SG36CX-US, SG40CX, SG50CX, SG60CX-US, SG110CX, SG250HX, SG250HX-US, SG100CX, SG100CX-JP, SG250HX-IN, SG25CX-SA, SG75CX, SG3.0RT, SG4.0RT, SG5.0RT, SG6.0RT, SG7.0RT, SG8.0RT, SG10RT, SG12RT, SG15RT, SG17RT, SG20RT
+SG30KTL, SG10KTL, SG12KTL, SG15KTL, SG20KTL, SG30KU, SG36KTL, SG36KU, SG40KTL, SG40KTL-M,
+SG50KTL-M, SG60KTL-M, SG60KU, SG30KTL-M, SG30KTL-M-V31, SG33KTL-M, SG36KTL-M, SG33K3J,
+SG49K5J, SG34KJ, LP_P34KSG, SG50KTL-M-20, SG60KTL, SG80KTL, SG80KTL-20, SG60KU-M,
+SG5KTL-MT, SG6KTL-MT, SG8KTL-M, SG10KTL-M, SG10KTL-MT, SG12KTL-M, SG15KTL-M, SG17KTL-M,
+SG20KTL-M, SG80KTL-M, SG111HV, SG125HV, SG125HV-20, SG30CX, SG33CX, SG36CX-US, SG40CX,
+SG50CX, SG60CX-US, SG110CX, SG250HX, SG250HX-US, SG100CX, SG100CX-JP, SG250HX-IN,
+SG25CX-SA, SG75CX, SG3.0RT, SG4.0RT, SG5.0RT, SG6.0RT, SG7.0RT, SG8.0RT, SG10RT, SG12RT,
+SG15RT, SG17RT, SG20RT
 
 ### PV Grid-Connected String Inverters Gen 2
 
