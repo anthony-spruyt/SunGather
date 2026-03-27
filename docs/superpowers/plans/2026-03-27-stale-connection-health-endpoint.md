@@ -308,7 +308,11 @@ git commit -m "feat: vendor and migrate SungrowModbusTcpClient to pymodbus 3.x"
 
 ### Task 3: Vendor and migrate sungrow_modbus_web_client.py
 
-This is the HTTP/WebSocket client for the WiNet-S dongle. Extends `ModbusBaseSyncClient`.
+This is the HTTP/WebSocket client for the WiNet-S dongle. The upstream extends
+`BaseModbusClient`, but in pymodbus 3.x `ModbusBaseSyncClient.__init__` requires
+6 positional arguments and can't be called simply. Instead, extend `ModbusTcpClient`
+which provides a user-friendly constructor, and override `connect()`, `send()`,
+`recv()`, and `close()`.
 
 **Files:**
 
@@ -330,10 +334,10 @@ from client.sungrow_modbus_web_client import SungrowModbusWebClient
 
 
 class TestSungrowModbusWebClientInit:
-    def test_extends_modbus_base_sync_client(self):
-        """SungrowModbusWebClient should extend pymodbus ModbusBaseSyncClient."""
-        from pymodbus.client import ModbusBaseSyncClient
-        assert issubclass(SungrowModbusWebClient, ModbusBaseSyncClient)
+    def test_extends_modbus_tcp_client(self):
+        """SungrowModbusWebClient should extend pymodbus ModbusTcpClient."""
+        from pymodbus.client import ModbusTcpClient
+        assert issubclass(SungrowModbusWebClient, ModbusTcpClient)
 
     def test_init_sets_defaults(self):
         """Init should set default host, port, and endpoint."""
@@ -379,8 +383,7 @@ Expected: FAIL (module not found)
 Create `SunGather/client/sungrow_modbus_web_client.py`:
 
 ```python
-from pymodbus.client import ModbusBaseSyncClient
-from pymodbus.framer import FramerType
+from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 from websocket import create_connection
 
@@ -392,8 +395,15 @@ import json
 import time
 
 
-class SungrowModbusWebClient(ModbusBaseSyncClient):
+class SungrowModbusWebClient(ModbusTcpClient):
     """Modbus over Sungrow HTTP client for WiNet-S Dongle."""
+
+    # Parameters accepted by ModbusTcpClient.__init__
+    _ACCEPTED_KWARGS = {
+        'framer', 'port', 'name', 'source_address',
+        'reconnect_delay', 'reconnect_delay_max', 'timeout',
+        'retries', 'trace_packet', 'trace_pdu', 'trace_connect',
+    }
 
     def __init__(self, host='127.0.0.1', port=8082, **kwargs):
         self.dev_host = host
@@ -401,8 +411,10 @@ class SungrowModbusWebClient(ModbusBaseSyncClient):
         self.timeout = kwargs.get('timeout', '5')
         self.ws_socket = None
 
-        # Filter kwargs to only what ModbusBaseSyncClient accepts
-        super().__init__(framer=FramerType.SOCKET)
+        # Filter to only params ModbusTcpClient accepts
+        filtered = {k: v for k, v in kwargs.items()
+                    if k in self._ACCEPTED_KWARGS}
+        super().__init__(host, port=port, **filtered)
 
         self.ws_endpoint = (
             "ws://" + str(self.dev_host) + ":" + str(self.ws_port) +
@@ -1041,8 +1053,8 @@ class TestHealthEndpointStaleData:
 
 
 class TestHealthEndpointEdgeCases:
-    def test_returns_200_at_boundary(self):
-        """/health should return 200 when exactly at the threshold."""
+    def test_returns_200_just_below_threshold(self):
+        """/health should return 200 when just below the 3x threshold."""
         export_webserver.scan_interval = 30
         export_webserver.last_successful_scrape = (
             datetime.now() - timedelta(seconds=89)
@@ -1191,7 +1203,8 @@ git commit -m "feat: add /health endpoint for data-freshness liveness probe"
 
 - [ ] **Step 1: Update HEALTHCHECK**
 
-In `Dockerfile`, replace the existing HEALTHCHECK (lines 27-28):
+In `Dockerfile`, replace the existing HEALTHCHECK (lines 27-28).
+Note: port must match the configured webserver port (default 8080, commonly 8099):
 
 ```dockerfile
 # Before

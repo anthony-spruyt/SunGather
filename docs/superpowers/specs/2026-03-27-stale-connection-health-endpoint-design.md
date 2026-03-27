@@ -25,7 +25,7 @@ Two workstreams:
 
 ## Design
 
-### 1. Vendor SungrowClient
+### 1. Vendor SungrowClient packages
 
 Copy the three upstream client packages into `SunGather/client/`, including supporting files:
 
@@ -68,17 +68,21 @@ from pymodbus.client import ModbusTcpClient
 
 #### Dependency changes
 
-Remove from `requirements.txt` and `setup.py`:
+Remove from `requirements.txt`:
 
 - `SungrowClient>=0.1.0`
-- `SungrowModbusTcpClient>=0.0.1`
-- `SungrowModbusWebClient>=0.0.3`
 
-Add explicit dependencies that were previously transitive:
+Update `setup.py` `install_requires`:
 
-- `pycryptodomex` (used by `SungrowModbusTcpClient` for AES encryption)
-- `websocket-client>=1.2.1` (already in `setup.py`, add to `requirements.txt`)
-- `pymodbus>=3.6.0,<4.0.0` (already in `setup.py`, add to `requirements.txt`)
+- Replace `pymodbus>=2.3.0` with `pymodbus>=3.6.0,<4.0.0`
+- Add `pycryptodomex` (used by `SungrowModbusTcpClient` for AES encryption)
+- Keep `websocket-client>=1.2.1` (already present)
+
+Add to `requirements.txt` (not currently listed there):
+
+- `pymodbus>=3.6.0,<4.0.0`
+- `pycryptodomex`
+- `websocket-client>=1.2.1`
 
 ### 2. Pymodbus 2.x to 3.x Migration
 
@@ -92,8 +96,8 @@ use `device_id=` (replacing the 2.x `unit=` parameter).
 | pymodbus 2.x | pymodbus 3.x |
 | --- | --- |
 | `from pymodbus.client.sync import ModbusTcpClient` | `from pymodbus.client import ModbusTcpClient` |
-| `from pymodbus.client.sync import BaseModbusClient` | `from pymodbus.client import ModbusBaseSyncClient` |
-| `from pymodbus.transaction import ModbusSocketFramer` | `from pymodbus.framer import FramerTypeType` |
+| `from pymodbus.client.sync import BaseModbusClient` | `from pymodbus.client import ModbusTcpClient` (see web client section) |
+| `from pymodbus.transaction import ModbusSocketFramer` | `from pymodbus.framer import FramerType` |
 | `from pymodbus.factory import ClientDecoder` | Removed (framer handles decoding) |
 | `from pymodbus.exceptions import ConnectionException` | `from pymodbus.exceptions import ConnectionException` (unchanged) |
 
@@ -102,10 +106,10 @@ use `device_id=` (replacing the 2.x `unit=` parameter).
 | 2.x | 3.6.x |
 | --- | --- |
 | `client.is_socket_open()` | `client.connected` (property) |
-| `read_input_registers(addr, count=N, unit=X)` | `read_input_registers(addr, count=N, device_id=X)` |
-| `read_holding_registers(addr, count=N, unit=X)` | `read_holding_registers(addr, count=N, device_id=X)` |
+| `read_input_registers(address, count=N, unit=X)` | `read_input_registers(address, *, count=N, device_id=X)` |
+| `read_holding_registers(address, count=N, unit=X)` | `read_holding_registers(address, *, count=N, device_id=X)` |
 | `RetryOnEmpty` client kwarg | Removed |
-| `_send()` / `_recv()` internal methods | `send()` / `recv()` (no underscore) |
+| `_send(request)` / `_recv(size)` | `send(request, addr=None)` / `recv(size)` |
 | `ModbusTcpClient(**config_dict)` | `ModbusTcpClient(host, **rest)` (`host` is positional) |
 
 #### sungrow_client.py
@@ -162,7 +166,7 @@ self.recv = self._orig_recv      # was self._recv = self._orig_recv
 self._orig_send(GET_KEY)         # was self._send(GET_KEY)
 self._key_packet = self._orig_recv(25)  # was self._recv(25)
 
-# _send_cipher(): delegate to parent's send
+# _send_cipher(request, addr=None): must accept addr to match send() signature
 return super().send(encrypted_request)  # was ModbusTcpClient._send(self, ...)
 
 # _recv_decipher(): delegate to parent's recv
@@ -180,10 +184,17 @@ Connection and close:
 
 #### sungrow_modbus_web_client.py
 
+The upstream class extends `BaseModbusClient`, but in pymodbus 3.x
+`ModbusBaseSyncClient.__init__` requires 6 positional arguments (`framer`,
+`retries`, `comm_params`, `trace_packet`, `trace_pdu`, `trace_connect`) and
+cannot be called with just `framer=FramerType.SOCKET`. Instead, extend
+`ModbusTcpClient` which provides a user-friendly constructor and override
+`connect()`, `send()`, `recv()`, and `close()` to use WebSocket/HTTP.
+
 Import changes:
 
-- `from pymodbus.client.sync import BaseModbusClient` -> `from pymodbus.client import ModbusBaseSyncClient`
-- `from pymodbus.transaction import ModbusSocketFramer, ModbusBinaryFramer` -> `from pymodbus.framer import FramerType`
+- `from pymodbus.client.sync import BaseModbusClient` -> `from pymodbus.client import ModbusTcpClient`
+- `from pymodbus.transaction import ModbusSocketFramer, ModbusBinaryFramer` -> removed
 - `from pymodbus.factory import ClientDecoder` -> removed
 
 Constructor changes:
@@ -192,13 +203,16 @@ Constructor changes:
 # Before
 BaseModbusClient.__init__(self, framer(ClientDecoder(), self), **kwargs)
 # After
-super().__init__(framer=FramerType.SOCKET, **kwargs)
+super().__init__(host, port=port, **filtered_kwargs)
 ```
+
+Where `filtered_kwargs` contains only parameters accepted by `ModbusTcpClient`
+(`timeout`, `retries`, etc.) and strips any unknown keys.
 
 Method renaming:
 
-- `_send` -> `send`
-- `_recv` -> `recv`
+- `_send` -> `send(request, addr=None)`
+- `_recv` -> `recv(size)`
 
 Short read handling:
 
@@ -212,7 +226,8 @@ if int(counter) < int(size):
 
 Property:
 
-- `is_socket_open()` -> `connected` property override
+- `is_socket_open()` -> `connected` property (new definition, not override --
+  `ModbusTcpClient.connected` checks TCP socket state, but this class uses WebSocket)
 
 ### 3. Health Endpoint
 
@@ -299,10 +314,11 @@ livenessProbe:
   failureThreshold: 3
 ```
 
-Docker HEALTHCHECK (Dockerfile):
+Docker HEALTHCHECK (Dockerfile). Note: port must match the configured webserver port
+(default 8080, but commonly set to 8099 in deployments):
 
 ```dockerfile
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')" \
   || exit 1
 ```
