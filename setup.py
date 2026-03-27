@@ -16,8 +16,9 @@ setuptools.setup(
     url="https://github.com/bohdan-s/SunGather",
     packages=setuptools.find_packages(),
     install_requires=[
-        'pymodbus>=2.3.0',
+        'pymodbus>=3.6.0,<4.0.0',
         'websocket-client>=1.2.1',
+        'pycryptodomex',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
