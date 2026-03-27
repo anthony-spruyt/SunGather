@@ -84,16 +84,16 @@ Add explicit dependencies that were previously transitive:
 
 **Dependency:** Replace `pymodbus>=2.3.0` with `pymodbus>=3.6.0,<4.0.0`.
 
-The upper bound `<4.0.0` guards against future breaking changes. Within 3.x, the `slave=`
-parameter is stable (3.7+ also accepts `device_id=` as an alias but `slave=` still works).
+The upper bound `<4.0.0` guards against future breaking changes. The register read methods
+use `device_id=` (replacing the 2.x `unit=` parameter).
 
 #### Import changes
 
-| pymodbus 2.x | pymodbus 3.6.x |
+| pymodbus 2.x | pymodbus 3.x |
 | --- | --- |
 | `from pymodbus.client.sync import ModbusTcpClient` | `from pymodbus.client import ModbusTcpClient` |
 | `from pymodbus.client.sync import BaseModbusClient` | `from pymodbus.client import ModbusBaseSyncClient` |
-| `from pymodbus.transaction import ModbusSocketFramer` | `from pymodbus.framer import Framer` |
+| `from pymodbus.transaction import ModbusSocketFramer` | `from pymodbus.framer import FramerTypeType` |
 | `from pymodbus.factory import ClientDecoder` | Removed (framer handles decoding) |
 | `from pymodbus.exceptions import ConnectionException` | `from pymodbus.exceptions import ConnectionException` (unchanged) |
 
@@ -102,8 +102,8 @@ parameter is stable (3.7+ also accepts `device_id=` as an alias but `slave=` sti
 | 2.x | 3.6.x |
 | --- | --- |
 | `client.is_socket_open()` | `client.connected` (property) |
-| `read_input_registers(addr, count=N, unit=X)` | `read_input_registers(addr, count=N, slave=X)` |
-| `read_holding_registers(addr, count=N, unit=X)` | `read_holding_registers(addr, count=N, slave=X)` |
+| `read_input_registers(addr, count=N, unit=X)` | `read_input_registers(addr, count=N, device_id=X)` |
+| `read_holding_registers(addr, count=N, unit=X)` | `read_holding_registers(addr, count=N, device_id=X)` |
 | `RetryOnEmpty` client kwarg | Removed |
 | `_send()` / `_recv()` internal methods | `send()` / `recv()` (no underscore) |
 | `ModbusTcpClient(**config_dict)` | `ModbusTcpClient(host, **rest)` (`host` is positional) |
@@ -111,7 +111,7 @@ parameter is stable (3.7+ also accepts `device_id=` as an alias but `slave=` sti
 #### sungrow_client.py
 
 - `checkConnection()`: `self.client.is_socket_open()` -> `self.client.connected`
-- `load_registers()`: `unit=self.inverter_config['slave']` -> `slave=self.inverter_config['slave']`
+- `load_registers()`: `unit=self.inverter_config['slave']` -> `device_id=self.inverter_config['slave']`
 - `connect()`: Remove `RetryOnEmpty` from `client_config`
 - `connect()`: `host` must be passed positionally to `ModbusTcpClient`:
 
@@ -183,7 +183,7 @@ Connection and close:
 Import changes:
 
 - `from pymodbus.client.sync import BaseModbusClient` -> `from pymodbus.client import ModbusBaseSyncClient`
-- `from pymodbus.transaction import ModbusSocketFramer, ModbusBinaryFramer` -> `from pymodbus.framer import Framer`
+- `from pymodbus.transaction import ModbusSocketFramer, ModbusBinaryFramer` -> `from pymodbus.framer import FramerType`
 - `from pymodbus.factory import ClientDecoder` -> removed
 
 Constructor changes:
@@ -192,7 +192,7 @@ Constructor changes:
 # Before
 BaseModbusClient.__init__(self, framer(ClientDecoder(), self), **kwargs)
 # After
-super().__init__(framer=Framer.SOCKET, **kwargs)
+super().__init__(framer=FramerType.SOCKET, **kwargs)
 ```
 
 Method renaming:
