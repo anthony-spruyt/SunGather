@@ -929,13 +929,16 @@ git commit -m "feat: vendor and migrate SungrowClient to pymodbus 3.x"
 - Modify: `SunGather/sungather.py:3`
 - Create: `tests/test_import_integration.py`
 
-- [ ] **Step 1: Write failing integration test**
+- [ ] **Step 1: Write verification test**
+
+This is a verification test (not red-green TDD) since the client package was
+created in previous tasks. It confirms the vendored package exposes the expected API.
 
 Create `tests/test_import_integration.py`:
 
 ```python
-def test_sungather_imports_vendored_client():
-    """sungather.py should import SungrowClient from the vendored client package."""
+def test_vendored_client_exposes_expected_api():
+    """Vendored client package should expose all required methods."""
     from client.sungrow_client import SungrowClient
     assert SungrowClient is not None
     assert hasattr(SungrowClient, 'checkConnection')
@@ -948,7 +951,7 @@ def test_sungather_imports_vendored_client():
 
 Run: `cd /workspaces/SunGather && python3 -m pytest tests/test_import_integration.py -v`
 
-Expected: PASS (client package already exists from previous tasks)
+Expected: PASS (client package exists from previous tasks)
 
 - [ ] **Step 3: Update sungather.py import**
 
@@ -1120,7 +1123,7 @@ Expected: FAIL (no `/health` handler, no `last_successful_scrape` attribute)
 
 - [ ] **Step 3: Add class-level attributes to export_webserver**
 
-In `SunGather/exports/webserver.py`, add to the class definition (after line 11):
+In `SunGather/exports/webserver.py`, add after the existing class-level attributes (after line 12):
 
 ```python
 class export_webserver(object):
@@ -1203,7 +1206,8 @@ git commit -m "feat: add /health endpoint for data-freshness liveness probe"
 - [ ] **Step 1: Update HEALTHCHECK**
 
 In `Dockerfile`, replace the existing HEALTHCHECK (lines 27-28).
-Note: port must match the configured webserver port (default 8080, commonly 8099):
+Uses the webserver's default port 8080. Deployments that override the webserver
+port must update this accordingly:
 
 ```dockerfile
 # Before
@@ -1213,7 +1217,7 @@ HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
 # After
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD /opt/virtualenv/bin/python -c \
-  "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')" \
+  "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" \
   || exit 1
 ```
 

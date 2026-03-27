@@ -55,7 +55,7 @@ from client.sungrow_client import SungrowClient
 Update internal cross-imports within the vendored `sungrow_client.py`:
 
 ```python
-# Before (upstream SungrowClient.py lines 1-3)
+# Before (upstream SungrowClient.py lines 3-5)
 from SungrowModbusTcpClient import SungrowModbusTcpClient
 from SungrowModbusWebClient import SungrowModbusWebClient
 from pymodbus.client.sync import ModbusTcpClient
@@ -216,8 +216,9 @@ Method renaming:
 
 Short read handling:
 
-- `self._handle_abrupt_socket_close(size, data, duration)` no longer exists in 3.x.
-  Replace with raising `ConnectionException` when fewer bytes are received than requested:
+- `self._handle_abrupt_socket_close(size, data, duration)` is no longer needed since the
+  vendored class fully overrides `recv()` with its own HTTP-based implementation. Replace
+  with raising `ConnectionException` when fewer bytes are received than requested:
 
 ```python
 if int(counter) < int(size):
@@ -315,13 +316,13 @@ livenessProbe:
   failureThreshold: 3
 ```
 
-Docker HEALTHCHECK (Dockerfile). Note: port must match the configured webserver port
-(default 8080, but commonly set to 8099 in deployments):
+Docker HEALTHCHECK (Dockerfile). Uses the webserver's default port 8080.
+Deployments that override the webserver port must update this accordingly:
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD /opt/virtualenv/bin/python -c \
-  "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')" \
+  "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" \
   || exit 1
 ```
 
