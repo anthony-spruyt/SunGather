@@ -10,6 +10,7 @@
         ".devcontainer/setup-devcontainer.sh",
         ".editorconfig",
         ".github/actionlint.yaml",
+        ".github/CODEOWNERS",
         ".github/renovate.json5",
         ".gitignore",
         ".gitleaks.toml",
