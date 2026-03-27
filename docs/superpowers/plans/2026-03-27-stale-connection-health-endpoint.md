@@ -735,6 +735,7 @@ class TestSungrowClientConnect:
         args, kwargs = MockClient.call_args
         assert args[0] == '192.168.1.1'
         assert 'host' not in kwargs
+        assert result is True
 
 
 class TestSungrowClientCheckConnection:
@@ -845,7 +846,7 @@ def connect(self):
     config = {k: v for k, v in self.client_config.items() if k != 'host'}
 
     if self.inverter_config['connection'] == "http":
-        config['port'] = '8082'
+        config['port'] = 8082
         self.client = SungrowModbusWebClient(host=host, **config)
     elif self.inverter_config['connection'] == "sungrow":
         self.client = SungrowModbusTcpClient(host, **config)
@@ -1104,11 +1105,9 @@ class TestConfigureStoresScanInterval:
         config = {'port': 8099, 'enabled': True, 'name': 'webserver'}
 
         with patch.object(HTTPServer, '__init__', return_value=None):
-            with patch.object(HTTPServer, 'serve_forever'):
-                try:
-                    ws.configure(config, inverter)
-                except Exception:
-                    pass  # May fail on server start, that's ok
+            with patch('threading.Thread') as mock_thread:
+                mock_thread.return_value = MagicMock()
+                ws.configure(config, inverter)
 
         assert export_webserver.scan_interval == 60
 ```

@@ -226,8 +226,8 @@ if int(counter) < int(size):
 
 Property:
 
-- `is_socket_open()` -> `connected` property (new definition, not override --
-  `ModbusTcpClient.connected` checks TCP socket state, but this class uses WebSocket)
+- `is_socket_open()` -> `connected` property (overrides `ModbusTcpClient.connected`
+  which checks TCP socket state -- this version checks WebSocket state instead)
 
 ### 3. Health Endpoint
 
@@ -254,7 +254,8 @@ def configure(self, config, inverter):
 #### Updating the timestamp
 
 Each export's `publish()` method is only called on successful scrapes
-(see `sungather.py` line 164-166). Update `last_successful_scrape` inside
+(see the `if(success)` block in `sungather.py`'s polling loop). Update
+`last_successful_scrape` inside
 `export_webserver.publish()`:
 
 ```python
@@ -319,11 +320,13 @@ Docker HEALTHCHECK (Dockerfile). Note: port must match the configured webserver 
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')" \
+  CMD /opt/virtualenv/bin/python -c \
+  "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')" \
   || exit 1
 ```
 
-Uses Python (guaranteed available) instead of `curl` (not in slim images).
+Uses the virtualenv Python (where pymodbus and dependencies are installed)
+instead of `curl` (not in slim images).
 
 ## Testing
 
