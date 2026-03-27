@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from SungrowClient import SungrowClient
+from client.sungrow_client import SungrowClient
 from version import __version__
 
 import importlib
