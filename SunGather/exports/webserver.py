@@ -56,7 +56,7 @@ class export_webserver(object):
         metrics_body = ""
         main_body = f"""
             <h3>SunGather v{__version__}</h3></p>
-            <h4>Need Help? <href a='https://github.com/anthony-spruyt/SunGather'>https://github.com/anthony-spruyt/SunGather</a></h4></p>
+            <h4>Need Help? <a href='https://github.com/anthony-spruyt/SunGather'>https://github.com/anthony-spruyt/SunGather</a></h4></p>
             """
         main_body += "<table><th>Address</th><tr><th>Register</th><th>Value</th></tr>"
         for register, value in inverter.latest_scrape.items():
