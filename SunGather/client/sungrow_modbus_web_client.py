@@ -108,7 +108,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
     def connected(self):
         return self.ws_socket is not None
 
-    def send(self, request, addr=None):
+    def send(self, request, _addr=None):
         if not self.ws_token:
             self.connect()
 
