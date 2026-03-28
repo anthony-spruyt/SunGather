@@ -179,18 +179,16 @@ class TestScrapeDisconnectOnFailure:
         assert result is True
 
 
-class TestScrapeRunStateContainsBug:
-    """Characterize the .contains() bug in run_state computation.
+class TestScrapeRunState:
+    """run_state computation based on start_stop and work_state_1.
 
-    The original code at sungrow_client.py:450 calls:
-        self.latest_scrape.get('work_state_1', False).contains('Run')
-    But Python strings have no .contains() method. This raises
-    AttributeError, which is silently swallowed by except Exception: pass.
-    As a result, run_state retains its persisted default value 'ON'
-    regardless of the actual inverter state.
+    The original code used `.contains('Run')` which is not a Python string method.
+    This was a bug that caused run_state to always retain the persisted default 'ON'.
+    The fix replaces `.contains('Run')` with `'Run' in work_state`.
     """
 
-    def test_run_state_retains_default_due_to_contains_bug(self):
+    def test_run_state_is_on_when_running(self):
+        """run_state is 'ON' when start_stop='Start' and work_state_1 contains 'Run'."""
         client = make_client(use_local_time=True)
         client.register_ranges = [
             {'type': 'read', 'start': 5000, 'range': 40}
@@ -212,10 +210,8 @@ class TestScrapeRunStateContainsBug:
 
         client.scrape()
 
-        # BUG: run_state should be re-evaluated based on start_stop
-        # and work_state_1, but .contains() raises AttributeError
-        # which is silently swallowed. run_state retains persisted
-        # default "ON" regardless of actual state.
+        # Fixed: 'Run' in work_state correctly evaluates to True,
+        # so run_state is correctly set to 'ON'.
         assert client.latest_scrape['run_state'] == 'ON'
 
 

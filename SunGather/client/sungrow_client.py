@@ -113,6 +113,66 @@ class SungrowClient():
             pass
         self.client = None
 
+    # -------------------------------------------------------------------------
+    # configure_registers helpers
+    # -------------------------------------------------------------------------
+
+    def _detect_field(self, field_name, scan_start, scan_range, scan_type):
+        """Load registers and extract a single field value for auto-detection."""
+        if self.load_registers(scan_type, scan_start, scan_range):
+            value = self.latest_scrape.get(field_name)
+            if isinstance(value, int):
+                logging.warning("Unknown Type Code Detected: %s", value)
+                return None
+            return value
+        return None
+
+    def _filter_registers_by_level(self, raw_registers, reg_type):
+        """Filter register list by level, model compatibility, and smart_meter flag."""
+        level = self.inverter_config.get('level')
+        model = self.inverter_config.get('model')
+        smart_meter = self.inverter_config.get('smart_meter')
+
+        for register in raw_registers:
+            if not (register.get('level', 3) <= level or level == 3):
+                continue
+            register['type'] = reg_type
+            register.pop('level')
+            if register.get('smart_meter') and smart_meter:
+                register.pop('models')
+                self.registers.append(register)
+            elif register.get('models') and not level == 3:
+                for supported_model in register.get('models'):
+                    if supported_model == model:
+                        register.pop('models')
+                        self.registers.append(register)
+            else:
+                self.registers.append(register)
+
+    def _build_register_ranges(self, scan_read_list, scan_hold_list):
+        """Build register_ranges from scan config."""
+        for reg_range in scan_read_list:
+            reg_range['type'] = "read"
+            if self._is_range_used(reg_range):
+                self.register_ranges.append(reg_range)
+
+        for reg_range in scan_hold_list:
+            reg_range['type'] = "hold"
+            if self._is_range_used(reg_range):
+                self.register_ranges.append(reg_range)
+
+    def _is_range_used(self, register_range) -> bool:
+        """Return True if any register falls within this scan range."""
+        for register in self.registers:
+            if register.get("type") != register_range.get("type"):
+                continue
+            addr = register.get('address')
+            rng_start = register_range.get("start")
+            rng_end = rng_start + register_range.get("range")
+            if rng_start <= addr <= rng_end:
+                return True
+        return False
+
     def configure_registers(self, registersfile) -> bool:
         # Check model so we can load only valid registers
         if self.inverter_config.get('model'):
@@ -120,28 +180,7 @@ class SungrowClient():
                 "Bypassing Model Detection, Using config: %s", self.inverter_config.get('model')
             )
         else:
-            # Load just the register to detect model, then load the rest based on returned model
-            for register in registersfile['registers'][0]['read']:
-                if register.get('name') == "device_type_code":
-                    register['type'] = "read"
-                    self.registers.append(register)
-                    if self.load_registers(register['type'], register['address'] - 1, 1):
-                        if isinstance(self.latest_scrape.get('device_type_code'), int):
-                            logging.warning(
-                                "Unknown Type Code Detected: %s",
-                                self.latest_scrape.get('device_type_code')
-                            )
-                        else:
-                            self.inverter_config['model'] = (
-                                self.latest_scrape.get('device_type_code')
-                            )
-                            logging.info(
-                                "Detected Model: %s", self.inverter_config.get('model')
-                            )
-                    else:
-                        logging.info('Model detection failed, please set model in config.py')
-                    self.registers.pop()
-                    break
+            self._auto_detect_model(registersfile)
 
         if self.inverter_config.get('serial_number'):
             logging.info(
@@ -149,94 +188,121 @@ class SungrowClient():
                 self.inverter_config.get('serial_number')
             )
         else:
-            # Load just the register to detect serial number, then load the rest based on model
-            for register in registersfile['registers'][0]['read']:
-                if register.get('name') == "serial_number":
-                    register['type'] = "read"
-                    self.registers.append(register)
-                    if self.load_registers(register['type'], register['address'] - 1, 10):
-                        if isinstance(self.latest_scrape.get('serial_number'), int):
-                            logging.warning(
-                                "Unknown Type Code Detected: %s",
-                                self.latest_scrape.get('serial_number')
-                            )
-                        else:
-                            self.inverter_config['serial_number'] = (
-                                self.latest_scrape.get('serial_number')
-                            )
-                            logging.info(
-                                "Detected Serial: %s", self.inverter_config.get('serial_number')
-                            )
-                    else:
-                        logging.info(
-                            'Serial detection failed, please set serial number in config.py'
-                        )
-                    self.registers.pop()
-                    break
+            self._auto_detect_serial(registersfile)
 
-        # Load register list based on name and value after checking model
-        for register in registersfile['registers'][0]['read']:
-            if (register.get('level', 3) <= self.inverter_config.get('level')
-                    or self.inverter_config.get('level') == 3):
-                register['type'] = "read"
-                register.pop('level')
-                if register.get('smart_meter') and self.inverter_config.get('smart_meter'):
-                    register.pop('models')
-                    self.registers.append(register)
-                elif register.get('models') and not self.inverter_config.get('level') == 3:
-                    for supported_model in register.get('models'):
-                        if supported_model == self.inverter_config.get('model'):
-                            register.pop('models')
-                            self.registers.append(register)
-                else:
-                    self.registers.append(register)
-
-        for register in registersfile['registers'][1]['hold']:
-            if (register.get('level', 3) <= self.inverter_config.get('level')
-                    or self.inverter_config.get('level') == 3):
-                register['type'] = "hold"
-                register.pop('level')
-                if register.get('smart_meter') and self.inverter_config.get('smart_meter'):
-                    register.pop('models')
-                    self.registers.append(register)
-                elif register.get('models') and not self.inverter_config.get('level',1) == 3:
-                    for supported_model in register.get('models'):
-                        if supported_model == self.inverter_config.get('model'):
-                            register.pop('models')
-                            self.registers.append(register)
-                else:
-                    self.registers.append(register)
-
-        # Load register list based om name and value after checking model
-        for register_range in registersfile['scan'][0]['read']:
-            register_range_used = False
-            register_range['type'] = "read"
-            for register in self.registers:
-                if register.get("type") == register_range.get("type"):
-                    if (register.get('address') >= register_range.get("start")
-                        and register.get('address') <= (
-                            register_range.get("start") + register_range.get("range")
-                        )):
-                        register_range_used = True
-                        continue
-            if register_range_used:
-                self.register_ranges.append(register_range)
-
-
-        for register_range in registersfile['scan'][1]['hold']:
-            register_range_used = False
-            register_range['type'] = "hold"
-            for register in self.registers:
-                if register.get("type") == register_range.get("type"):
-                    if (register.get('address') >= register_range.get("start")
-                        and register.get('address') <= (
-                            register_range.get("start") + register_range.get("range")
-                        )):
-                        register_range_used = True
-                        continue
-            if register_range_used:
-                self.register_ranges.append(register_range)
+        self._filter_registers_by_level(registersfile['registers'][0]['read'], "read")
+        self._filter_registers_by_level(registersfile['registers'][1]['hold'], "hold")
+        self._build_register_ranges(
+            registersfile['scan'][0]['read'],
+            registersfile['scan'][1]['hold'],
+        )
         return True
+
+    def _auto_detect_model(self, registersfile):
+        """Detect inverter model from device_type_code register."""
+        for register in registersfile['registers'][0]['read']:
+            if register.get('name') == "device_type_code":
+                register['type'] = "read"
+                self.registers.append(register)
+                detected = self._detect_field(
+                    "device_type_code", register['address'] - 1, 1, register['type']
+                )
+                if detected is not None:
+                    self.inverter_config['model'] = detected
+                    logging.info("Detected Model: %s", detected)
+                else:
+                    logging.info('Model detection failed, please set model in config.py')
+                self.registers.pop()
+                break
+
+    def _auto_detect_serial(self, registersfile):
+        """Detect inverter serial number from serial_number register."""
+        for register in registersfile['registers'][0]['read']:
+            if register.get('name') == "serial_number":
+                register['type'] = "read"
+                self.registers.append(register)
+                detected = self._detect_field(
+                    "serial_number", register['address'] - 1, 10, register['type']
+                )
+                if detected is not None:
+                    self.inverter_config['serial_number'] = detected
+                    logging.info("Detected Serial: %s", detected)
+                else:
+                    logging.info(
+                        'Serial detection failed, please set serial number in config.py'
+                    )
+                self.registers.pop()
+                break
+
+    # -------------------------------------------------------------------------
+    # load_registers helpers
+    # -------------------------------------------------------------------------
+
+    def _decode_datatype(self, register, raw_registers, index):
+        """Convert raw register word(s) to a Python value based on datatype."""
+        register_value = raw_registers[index]
+        datatype = register.get('datatype')
+
+        if datatype == "U16":
+            if register_value == 0xFFFF:
+                register_value = 0
+            if register.get('mask'):
+                register_value = 1 if register_value & register.get('mask') != 0 else 0
+        elif datatype == "S16":
+            if register_value in (0xFFFF, 0x7FFF):
+                register_value = 0
+            if register_value >= 32767:  # Anything > 32767 is negative for 16bit
+                register_value = register_value - 65536
+        elif datatype == "U32":
+            register_value = self._decode_u32(register_value, raw_registers[index + 1])
+        elif datatype == "S32":
+            register_value = self._decode_s32(register_value, raw_registers[index + 1])
+        elif datatype == "UTF-8":  # Serial only, 10 bytes
+            utf_value = register_value.to_bytes(2, 'big')
+            for x in range(1, 5):
+                utf_value += raw_registers[index + x].to_bytes(2, 'big')
+            register_value = utf_value.decode()
+
+        return register_value
+
+    def _decode_u32(self, low, high):
+        """Decode U32 value from two 16-bit words."""
+        if low == 0xFFFF and high == 0xFFFF:
+            return 0
+        return low + high * 0x10000
+
+    def _decode_s32(self, low, high):
+        """Decode S32 value from two 16-bit words."""
+        s32_zero = high in (0xFFFF, 0x7FFF)
+        if low == 0xFFFF and s32_zero:
+            return 0
+        if high >= 32767:  # Anything greater than 32767 is a negative
+            return low + high * 0x10000 - 0xffffffff - 1
+        return low + high * 0x10000
+
+    def _decode_register_value(self, register, raw_registers, index):
+        """Decode a raw register value with datatype conversion, datarange, and accuracy."""
+        register_value = self._decode_datatype(register, raw_registers, index)
+
+        # We convert a system response to a human value
+        if register.get('datarange'):
+            match = False
+            for value in register.get('datarange'):
+                if value['response'] == raw_registers[index]:
+                    register_value = value['value']
+                    match = True
+            if not match:
+                default = register.get('default')
+                logging.debug(
+                    "No matching value for %s in datarange of %s, using default %s",
+                    register_value, register['name'], default
+                )
+                register_value = default
+
+        if register.get('accuracy'):
+            register_value = round(register_value * register.get('accuracy'), 2)
+
+        return register_value
 
     def load_registers(self, register_type, start, count=100) -> bool:
         try:
@@ -251,7 +317,7 @@ class SungrowClient():
                 )
             else:
                 raise RuntimeError(f"Unsupported register type: {type}")
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             logging.warning("No data returned for %s, %s:%s", register_type, start, count)
             logging.debug("%s", err)
             return False
@@ -273,68 +339,11 @@ class SungrowClient():
 
         for num in range(0, count):
             run = int(start) + num + 1
-
             for register in self.registers:
                 if register_type == register['type'] and register['address'] == run:
-                    register_name = register['name']
-
-                    register_value = rr.registers[num]
-
-                    # Convert unsigned to signed
-                    # If xFF / xFFFF then change to 0, looks better when logging / graphing
-                    if register.get('datatype') == "U16":
-                        if register_value == 0xFFFF:
-                            register_value = 0
-                        if register.get('mask'):
-                            # Filter the value through the mask.
-                            register_value = 1 if register_value & register.get('mask') != 0 else 0
-                    elif register.get('datatype') == "S16":
-                        if register_value in (0xFFFF, 0x7FFF):
-                            register_value = 0
-                        if register_value >= 32767:  # Anything > 32767 is negative for 16bit
-                            register_value = register_value - 65536
-                    elif register.get('datatype') == "U32":
-                        u32_value = rr.registers[num+1]
-                        if register_value == 0xFFFF and u32_value == 0xFFFF:
-                            register_value = 0
-                        else:
-                            register_value = register_value + u32_value * 0x10000
-                    elif register.get('datatype') == "S32":
-                        u32_value = rr.registers[num+1]
-                        s32_zero = u32_value in (0xFFFF, 0x7FFF)
-                        if register_value == 0xFFFF and s32_zero:
-                            register_value = 0
-                        elif u32_value >= 32767:  # Anything greater than 32767 is a negative
-                            register_value = register_value + u32_value * 0x10000 - 0xffffffff - 1
-                        else:
-                            register_value = register_value + u32_value * 0x10000
-                    elif register.get('datatype') == "UTF-8":  # Serial only, 10 bytes
-                        utf_value = register_value.to_bytes(2, 'big')
-                        for x in range(1,5):
-                            utf_value += rr.registers[num+x].to_bytes(2, 'big')
-                        register_value = utf_value.decode()
-
-
-                    # We convert a system response to a human value
-                    if register.get('datarange'):
-                        match = False
-                        for value in register.get('datarange'):
-                            if value['response'] == rr.registers[num]:
-                                register_value = value['value']
-                                match = True
-                        if not match:
-                            default = register.get('default')
-                            logging.debug(
-                                "No matching value for %s in datarange of %s, using default %s",
-                                register_value, register_name, default
-                            )
-                            register_value = default
-
-                    if register.get('accuracy'):
-                        register_value = round(register_value * register.get('accuracy'), 2)
-
-                    # Set the final register value with adjustments above included
-                    self.latest_scrape[register_name] = register_value
+                    self.latest_scrape[register['name']] = self._decode_register_value(
+                        register, rr.registers, num
+                    )
         return True
 
     def validateRegister(self, check_register) -> bool:
@@ -387,115 +396,54 @@ class SungrowClient():
     def getSerialNumber(self) -> str | None:
         return self.inverter_config['serial_number']
 
-    def scrape(self) -> bool:
-        scrape_start = datetime.now()
+    # -------------------------------------------------------------------------
+    # scrape helpers
+    # -------------------------------------------------------------------------
 
-        # Clear previous inverter values, persist some values
-        persist_registers = {
-            "run_state":                self.latest_scrape.get("run_state","ON"),
-            "last_reset":               self.latest_scrape.get("last_reset",""),
-            "daily_export_to_grid":     self.latest_scrape.get("daily_export_to_grid",0),
-            "daily_import_from_grid":   self.latest_scrape.get("daily_import_from_grid",0),
-        }
-
-        self.latest_scrape = {}
-        self.latest_scrape['device_type_code'] = self.inverter_config['model']
-
-        for register, value in persist_registers.items():
-            self.latest_scrape[register] = value
-
-        load_registers_count = 0
-        load_registers_failed = 0
-
-        for reg_range in self.register_ranges:
-            load_registers_count +=1
-            logging.debug(
-                'Scraping: %s, %s:%s',
-                reg_range.get("type"), reg_range.get("start"), reg_range.get("range")
-            )
-            rng_type = reg_range.get('type')
-            rng_start = int(reg_range.get('start'))
-            rng_range = int(reg_range.get('range'))
-            if not self.load_registers(rng_type, rng_start, rng_range):
-                load_registers_failed +=1
-        if load_registers_failed == load_registers_count:
-            # If every scrape fails, disconnect the client
-            #logging.warning
-            self.disconnect()
-            return False
-        if load_registers_failed > 0:
-            logging.info(
-                'Scraping: %s/%s registers failed to scrape',
-                load_registers_failed, load_registers_count
-            )
-
-        # Leave connection open, see if helps resolve the connection issues
-        #self.close()
-
-        ## vr002
-        if self.inverter_config.get('use_local_time',False):
+    def _assemble_timestamp(self):
+        """Build timestamp string and remove individual time registers."""
+        time_keys = ["year", "month", "day", "hour", "minute", "second"]
+        if self.inverter_config.get('use_local_time', False):
             self.latest_scrape["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             logging.debug('Using Local Computer Time: %s', self.latest_scrape.get("timestamp"))
-            del self.latest_scrape["year"]
-            del self.latest_scrape["month"]
-            del self.latest_scrape["day"]
-            del self.latest_scrape["hour"]
-            del self.latest_scrape["minute"]
-            del self.latest_scrape["second"]
         else:
             try:
+                s = self.latest_scrape
                 self.latest_scrape["timestamp"] = (
-                    f"{self.latest_scrape['year']}-{self.latest_scrape['month']}"
-                    f"-{self.latest_scrape['day']} {self.latest_scrape['hour']}"
-                    f":{self.latest_scrape['minute']:02d}:{self.latest_scrape['second']:02d}"
+                    f"{s['year']}-{s['month']}-{s['day']}"
+                    f" {s['hour']}:{s['minute']:02d}:{s['second']:02d}"
                 )
                 logging.debug('Using Inverter Time: %s', self.latest_scrape.get("timestamp"))
-                del self.latest_scrape["year"]
-                del self.latest_scrape["month"]
-                del self.latest_scrape["day"]
-                del self.latest_scrape["hour"]
-                del self.latest_scrape["minute"]
-                del self.latest_scrape["second"]
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 self.latest_scrape["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 logging.warning(
                     'Failed to get Timestamp from Inverter, using Local Time: %s',
                     self.latest_scrape.get("timestamp")
                 )
-                del self.latest_scrape["year"]
-                del self.latest_scrape["month"]
-                del self.latest_scrape["day"]
-                del self.latest_scrape["hour"]
-                del self.latest_scrape["minute"]
-                del self.latest_scrape["second"]
+        for key in time_keys:
+            self.latest_scrape.pop(key, None)
 
-        # If alarm state exists then convert to timestamp, otherwise remove it
+    def _assemble_alarm_timestamp(self):
+        """Build alarm timestamp from alarm_time_* registers, then remove them."""
+        alarm_keys = [
+            "alarm_time_year", "alarm_time_month", "alarm_time_day",
+            "alarm_time_hour", "alarm_time_minute", "alarm_time_second",
+        ]
         try:
             if self.latest_scrape["pid_alarm_code"]:
+                s = self.latest_scrape
                 self.latest_scrape["alarm_timestamp"] = (
-                    f"{self.latest_scrape['alarm_time_year']}"
-                    f"-{self.latest_scrape['alarm_time_month']}"
-                    f"-{self.latest_scrape['alarm_time_day']}"
-                    f" {self.latest_scrape['alarm_time_hour']}"
-                    f":{self.latest_scrape['alarm_time_minute']:02d}"
-                    f":{self.latest_scrape['alarm_time_second']:02d}"
+                    f"{s['alarm_time_year']}-{s['alarm_time_month']}-{s['alarm_time_day']}"
+                    f" {s['alarm_time_hour']}:{s['alarm_time_minute']:02d}"
+                    f":{s['alarm_time_second']:02d}"
                 )
-            del self.latest_scrape["alarm_time_year"]
-            del self.latest_scrape["alarm_time_month"]
-            del self.latest_scrape["alarm_time_day"]
-            del self.latest_scrape["alarm_time_hour"]
-            del self.latest_scrape["alarm_time_minute"]
-            del self.latest_scrape["alarm_time_second"]
-        except Exception:
+            for key in alarm_keys:
+                del self.latest_scrape[key]
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
-        ### Custom Registers
-        ######################
-
-        ## vr001 - run_state
-        # See if the inverter is running, This is added to inverters so can be read via MQTT etc...
-        # It is also used below, as some registers hold the last value on 'stop' so we set to 0
-        # to help with graphing.
+    def _compute_run_state(self):
+        """Determine ON/OFF based on start_stop and work_state_1."""
         try:
             if self.latest_scrape.get('start_stop'):
                 logging.debug(
@@ -503,18 +451,58 @@ class SungrowClient():
                     self.latest_scrape.get('start_stop', 'null'),
                     self.latest_scrape.get('work_state_1', 'null')
                 )
+                work_state = self.latest_scrape.get('work_state_1', False)
                 if (self.latest_scrape.get('start_stop', False) == 'Start'
-                        and self.latest_scrape.get('work_state_1', False).contains('Run')):
+                        and 'Run' in work_state):
                     self.latest_scrape["run_state"] = "ON"
                 else:
                     self.latest_scrape["run_state"] = "OFF"
             else:
                 logging.info("DEBUG: Couldn't read start_stop so run_state is OFF")
                 self.latest_scrape["run_state"] = "OFF"
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
-        ## vr003 - last_reset
+    def _compute_grid_power(self):
+        """Calculate export_to_grid/import_from_grid from meter_power or export_power_hybrid."""
+        self.latest_scrape["export_to_grid"] = 0
+        self.latest_scrape["import_from_grid"] = 0
+
+        if self.validateRegister('meter_power'):
+            try:
+                power = self.latest_scrape.get(
+                    'meter_power', self.latest_scrape.get('export_power', 0)
+                )
+                if power < 0:
+                    self.latest_scrape["export_to_grid"] = abs(power)
+                elif power >= 0:
+                    self.latest_scrape["import_from_grid"] = power
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+        elif self.validateRegister('export_power_hybrid'):
+            # export_power_hybrid is negative in case of importing from the grid
+            try:
+                power = self.latest_scrape.get('export_power_hybrid', 0)
+                if power < 0:
+                    self.latest_scrape["import_from_grid"] = abs(power)
+                elif power >= 0:
+                    self.latest_scrape["export_to_grid"] = power
+            except Exception:  # pylint: disable=broad-exception-caught
+                pass
+
+    def _compute_load_power(self):
+        """Calculate load_power_hybrid from total_active_power and meter_power if missing."""
+        try:
+            if not self.latest_scrape["load_power"]:
+                self.latest_scrape["load_power"] = (
+                    int(self.latest_scrape.get('total_active_power'))
+                    + int(self.latest_scrape.get('meter_power'))
+                )
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
+
+    def _reset_daily_totals_if_needed(self):
+        """Reset daily counters on midnight rollover (vr003)."""
         date_format = "%Y-%m-%d %H:%M:%S"
         if not self.latest_scrape.get('last_reset', False):
             logging.info(
@@ -538,61 +526,80 @@ class SungrowClient():
             self.latest_scrape["daily_import_from_grid"] = 0
             self.latest_scrape['last_reset'] = self.latest_scrape["timestamp"]
 
-        ## vr004 - import_from_grid, vr005 - export_to_grid
-        # Create a registers for Power imported and exported to/from Grid
-        if self.inverter_config['level'] >= 1:
-            self.latest_scrape["export_to_grid"] = 0
-            self.latest_scrape["import_from_grid"] = 0
-
-            if self.validateRegister('meter_power'):
-                try:
-                    power = self.latest_scrape.get(
-                        'meter_power', self.latest_scrape.get('export_power', 0)
-                    )
-                    if power < 0:
-                        self.latest_scrape["export_to_grid"] = abs(power)
-                    elif power >= 0:
-                        self.latest_scrape["import_from_grid"] = power
-                except Exception:
-                    pass
-            # in this case we connected to a hybrid inverter and need to use export_power_hybrid
-            # export_power_hybrid is negative in case of importing from the grid
-            elif self.validateRegister('export_power_hybrid'):
-                try:
-                    power = self.latest_scrape.get('export_power_hybrid', 0)
-                    if power < 0:
-                        self.latest_scrape["import_from_grid"] = abs(power)
-                    elif power >= 0:
-                        self.latest_scrape["export_to_grid"] = power
-                except Exception:
-                    pass
-
-        try: # If inverter is returning no data for load_power, we can calculate it manually
-            if not self.latest_scrape["load_power"]:
-                self.latest_scrape["load_power"] = (
-                    int(self.latest_scrape.get('total_active_power'))
-                    + int(self.latest_scrape.get('meter_power'))
-                )
-        except Exception:
-            pass
-
-        ## vr004
+    def _accumulate_daily_grid_totals(self):
+        """Accumulate daily export/import totals from current scrape interval (vr006/vr007)."""
         if not self.latest_scrape.get('daily_export_to_grid', False):
             self.latest_scrape["daily_export_to_grid"] = 0
-
         self.latest_scrape["daily_export_to_grid"] += (
             (self.latest_scrape["export_to_grid"] / 1000)
             * (self.inverter_config['scan_interval'] / 60 / 60)
         )
 
-        ## vr005
         if not self.latest_scrape.get('daily_import_from_grid', False):
             self.latest_scrape["daily_import_from_grid"] = 0
-
         self.latest_scrape["daily_import_from_grid"] += (
             (self.latest_scrape["import_from_grid"] / 1000)
             * (self.inverter_config['scan_interval'] / 60 / 60)
         )
+
+    def scrape(self) -> bool:
+        scrape_start = datetime.now()
+
+        # Clear previous inverter values, persist some values
+        persist_registers = {
+            "run_state":                self.latest_scrape.get("run_state","ON"),
+            "last_reset":               self.latest_scrape.get("last_reset",""),
+            "daily_export_to_grid":     self.latest_scrape.get("daily_export_to_grid",0),
+            "daily_import_from_grid":   self.latest_scrape.get("daily_import_from_grid",0),
+        }
+
+        self.latest_scrape = {}
+        self.latest_scrape['device_type_code'] = self.inverter_config['model']
+
+        for register, value in persist_registers.items():
+            self.latest_scrape[register] = value
+
+        load_registers_count = 0
+        load_registers_failed = 0
+
+        for reg_range in self.register_ranges:
+            load_registers_count += 1
+            logging.debug(
+                'Scraping: %s, %s:%s',
+                reg_range.get("type"), reg_range.get("start"), reg_range.get("range")
+            )
+            rng_type = reg_range.get('type')
+            rng_start = int(reg_range.get('start'))
+            rng_range = int(reg_range.get('range'))
+            if not self.load_registers(rng_type, rng_start, rng_range):
+                load_registers_failed += 1
+
+        if load_registers_failed == load_registers_count:
+            self.disconnect()
+            return False
+        if load_registers_failed > 0:
+            logging.info(
+                'Scraping: %s/%s registers failed to scrape',
+                load_registers_failed, load_registers_count
+            )
+
+        self._assemble_timestamp()          ## vr002
+        self._assemble_alarm_timestamp()
+
+        ### Custom Registers
+        ######################
+
+        self._compute_run_state()           ## vr001
+        self._reset_daily_totals_if_needed() ## vr003
+
+        ## vr004 / vr005 - import_from_grid, export_to_grid
+        if self.inverter_config['level'] >= 1:
+            self._compute_grid_power()
+
+        self._compute_load_power()
+
+        ## vr006 / vr007 - daily totals accumulation
+        self._accumulate_daily_grid_totals()
 
         scrape_end = datetime.now()
         elapsed = scrape_end - scrape_start
