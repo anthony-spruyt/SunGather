@@ -109,10 +109,10 @@ The `json` module is already imported in `webserver.py`.
 
 **File:** `tests/test_health_endpoint.py`
 
-- Update `make_request()` helper to return a tuple of `(status_code, body_dict)`:
+- Update `make_request()` helper to return a 3-tuple of `(status_code, body_dict, handler)`:
   - After `handler.do_GET()`, seek `handler.wfile` to position 0 and read the bytes
   - Parse the bytes as JSON via `json.loads()`
-  - Return `(response_code, parsed_body)`
+  - Return `(response_code, parsed_body, handler)` — `handler` is needed for header assertions
 - Verify `Content-Type` header by checking `handler.send_header.call_args_list` includes `("Content-type", "application/json")`
 - Update all existing health endpoint tests to destructure the return tuple and assert both status code and body content
 - Add an `autouse` fixture to `TestHealthEndpointNeverScraped` (or a module-level one) that resets `export_webserver.last_successful_scrape = None` and `export_webserver.scan_interval = 30` before each test to prevent order-dependent state leakage
