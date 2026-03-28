@@ -24,7 +24,9 @@ COPY SunGather/config-example.yaml /config/config.yaml
 
 USER sungather
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-  CMD /opt/virtualenv/bin/python -c "print('ok')" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD /opt/virtualenv/bin/python -c \
+  "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" \
+  || exit 1
 
 CMD [ "/opt/virtualenv/bin/python", "sungather.py", "-c", "/config/config.yaml", "-l", "/logs/" ]

@@ -1,3 +1,4 @@
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from version import __version__
@@ -10,11 +11,14 @@ import urllib
 class export_webserver(object):
     html_body = "Pending Data Retrieval"
     metrics = ""
+    last_successful_scrape = None
+    scan_interval = 30
     def __init__(self):
         False
 
     # Configure Webserver
     def configure(self, config, inverter):
+        export_webserver.scan_interval = inverter.inverter_config['scan_interval']
         try:
             self.webServer = HTTPServer(('', config.get('port',8080)), MyServer)
             self.t = Thread(target=self.webServer.serve_forever)
@@ -47,6 +51,7 @@ class export_webserver(object):
         return True
 
     def publish(self, inverter):
+        export_webserver.last_successful_scrape = datetime.now()
         json_array={"registers":{}, "client_config":{}, "inverter_config":{}}
         metrics_body = ""
         main_body = f"""
@@ -77,6 +82,16 @@ class export_webserver(object):
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/health':
+            if export_webserver.last_successful_scrape is None:
+                self.send_response(200)
+            elif (datetime.now() - export_webserver.last_successful_scrape
+                  ).total_seconds() < export_webserver.scan_interval * 3:
+                self.send_response(200)
+            else:
+                self.send_response(503)
+            self.end_headers()
+            return
         if self.path.startswith('/metrics'):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
