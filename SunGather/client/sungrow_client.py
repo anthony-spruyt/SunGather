@@ -247,7 +247,7 @@ class SungrowClient():
             if register_value == 0xFFFF:
                 register_value = 0
             if register.get('mask'):
-                register_value = 1 if register_value & register.get('mask') != 0 else 0
+                register_value = 1 if (register_value & register.get('mask')) != 0 else 0
         elif datatype == "S16":
             if register_value in (0xFFFF, 0x7FFF):
                 register_value = 0
@@ -438,7 +438,7 @@ class SungrowClient():
                     f":{s['alarm_time_second']:02d}"
                 )
             for key in alarm_keys:
-                del self.latest_scrape[key]
+                self.latest_scrape.pop(key, None)
         except Exception:  # pylint: disable=broad-exception-caught
             pass
 
