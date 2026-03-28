@@ -144,8 +144,20 @@ jobs:
           IMAGE: "${{ env.IMAGE }}"
           OWNER: "${{ github.repository_owner }}"
         run: |
+          # Find the previous tag to generate changelog
+          PREV_TAG=$(git tag --list "v*" --sort=-v:refname | head -n 1)
+
           {
             echo 'RELEASE_NOTES<<NOTES_EOF'
+
+            printf '## What'\''s Changed\n\n'
+            if [ -n "$PREV_TAG" ]; then
+              git log "${PREV_TAG}..HEAD" --pretty=format:'- %s' --no-merges
+            else
+              git log --pretty=format:'- %s' --no-merges
+            fi
+            printf '\n\n'
+
             printf '## Container Image\n\n'
             printf '```\n'
             printf '%s:%s\n' "${IMAGE}" "${VERSION}"
