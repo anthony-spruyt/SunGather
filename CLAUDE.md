@@ -32,14 +32,19 @@ docker build -t sungather .
 ## Testing
 
 ```bash
-# Run all tests
+# Run all unit tests
 python -m pytest tests/ -v
 
 # Run a specific test file
 python -m pytest tests/test_sungather.py -v
+
+# Run e2e integration test (requires Docker + real inverter at 192.168.30.95:502)
+python -m pytest tests/test_container_smoke.py -m integration -v
 ```
 
-24 tests covering core scraping logic, register configuration, and export modules.
+104 unit tests covering core scraping logic, register configuration, and export modules. Integration tests are excluded by default (`-m 'not integration'` in pyproject.toml).
+
+**Before declaring a PR ready to merge**, always run the e2e integration test locally if the inverter is reachable. It builds the Docker image, runs `--runonce` against the real inverter, and validates a successful scrape cycle.
 
 ## CI/CD
 
