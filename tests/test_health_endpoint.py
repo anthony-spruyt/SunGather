@@ -120,9 +120,8 @@ class TestConfigureStoresScanInterval:
         inverter.client_config = {}
         config = {'port': 8099, 'enabled': True, 'name': 'webserver'}
 
-        with patch.object(HTTPServer, '__init__', return_value=None):
-            with patch('threading.Thread') as mock_thread:
-                mock_thread.return_value = MagicMock()
+        with patch('exports.webserver.HTTPServer'):
+            with patch('exports.webserver.Thread'):
                 ws.configure(config, inverter)
 
         assert export_webserver.scan_interval == 60
