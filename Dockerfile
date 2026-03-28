@@ -8,6 +8,14 @@ RUN python3 -m venv /opt/virtualenv \
 COPY requirements.txt ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir -r requirements.txt
 
+# Test stage: includes pytest and source code for CI
+FROM builder AS test
+
+WORKDIR /opt/sungather
+COPY SunGather/ ./SunGather/
+RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
+
+# Production stage
 FROM python:3.14-slim
 
 RUN useradd -r -m sungather
