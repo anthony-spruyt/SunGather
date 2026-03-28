@@ -133,10 +133,15 @@ jobs:
 
       - name: "Create git tag"
         env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           TAG: "${{ needs.resolve-version.outputs.tag }}"
+          REPO: "${{ github.repository }}"
+          SHA: "${{ github.sha }}"
         run: |
-          git tag "$TAG"
-          git push origin "$TAG"
+          gh api "repos/${REPO}/git/refs" \
+            --method POST \
+            -f "ref=refs/tags/${TAG}" \
+            -f "sha=${SHA}"
 
       - name: "Generate release notes"
         id: "notes"
