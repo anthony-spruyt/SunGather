@@ -1,8 +1,10 @@
 FROM python:3.14 AS builder
 
+WORKDIR /build
+
 RUN python3 -m venv /opt/virtualenv \
  && apt-get update \
- && apt-get install -y --no-install-recommends build-essential \
+ && apt-get install -y --no-install-recommends build-essential=12.* \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
