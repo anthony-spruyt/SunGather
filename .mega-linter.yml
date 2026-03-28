@@ -1,13 +1,29 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oxsecurity/megalinter/main/megalinter/descriptors/schemas/megalinter-configuration.jsonschema.json
+# MegaLinter configuration for SunGather
+# Uses dedicated megalinter-sungather flavor image
+
+DEFAULT_BRANCH: "main"
 ENABLE_LINTERS:
-  - ACTION_ACTIONLINT
-  - BASH_SHELLCHECK
-  - MARKDOWN_MARKDOWNLINT
-  - REPOSITORY_GITLEAKS
-  - REPOSITORY_SECRETLINT
-  - REPOSITORY_TRIVY
-  - SPELL_LYCHEE
-  - YAML_YAMLLINT
+  - "ACTION_ACTIONLINT"
+  - "BASH_SHELLCHECK"
+  - "BASH_SHFMT"
+  - "DOCKERFILE_HADOLINT"
+  - "JSON_JSONLINT"
+  - "MARKDOWN_MARKDOWNLINT"
+  - "PYTHON_PYLINT"
+  - "REPOSITORY_GITLEAKS"
+  - "REPOSITORY_SECRETLINT"
+  - "REPOSITORY_TRIVY"
+  - "SPELL_LYCHEE"
+  - "YAML_YAMLLINT"
 EXCLUDED_DIRECTORIES:
-  - .git
-DEFAULT_BRANCH: main
+  - ".claude"
+  - ".git"
+  - "plans"
+FILTER_REGEX_EXCLUDE: "(CLAUDE\\.md$)"
+FLAVOR_SUGGESTIONS: false
 IGNORE_GITIGNORED_FILES: true
+REPOSITORY_SECRETLINT_ARGUMENTS:
+  - "--secretlintignore"
+  - ".secretlintignore"
+SPELL_LYCHEE_FILTER_REGEX_EXCLUDE: "(package-lock\\.json)"

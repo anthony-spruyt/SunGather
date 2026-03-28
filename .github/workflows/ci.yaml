@@ -16,8 +16,31 @@ permissions:
   statuses: "write"
 jobs:
   lint:
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
-    secrets: "inherit"
+    name: "MegaLinter"
+    runs-on: "ubuntu-latest"
+    concurrency:
+      group: "${{ github.workflow }}-lint-${{ github.ref }}"
+      cancel-in-progress: true
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd" # v6
+        with:
+          fetch-depth: 0
+
+      - name: "Run MegaLinter"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          VALIDATE_ALL_CODEBASE: "${{ github.event_name != 'pull_request' }}"
+        run: "./lint.sh --ci"
+
+      - name: "Upload SARIF to GitHub Security"
+        if: >-
+          (success() || failure())
+          && hashFiles('megalinter-reports/megalinter-report.sarif') != ''
+          && github.event.repository.visibility == 'public'
+        uses: "github/codeql-action/upload-sarif@05b1a5d28f8763fd11e77388fe57846f1ba8e766"
+        with:
+          sarif_file: "megalinter-reports/megalinter-report.sarif"
   build:
     name: "Build, test, and scan"
     needs: "lint"
