@@ -4,36 +4,34 @@ import time
 
 import requests
 
-"""
-    See: https://pvoutput.org/help/api_specification.html#add-status-service
-    Parameter   Field               Required    Format      Unit    Example     Donation
-    d           Output Date         Yes         yyyymmdd    date    20210228
-    t           Time                Yes         hh:mm       time    14:00
-    v1          Energy Generation   No          number      wh      10000
-    v2          Power Generation    No          number      watts   2000
-    v3          Energy Consumption  No          number      wh      10000
-    v4          Power Consumption   No          number      watts   2000
-    # At least one of the values v1, v2, v3 or v4 must be present.
-    v5          Temperature         No          decimal     celsius 23.4
-    v6          Voltage             No          decimal     volts   239.2
-    c1          Cumulative Flag     No          number              1
-    # 1 - Both v1 and v3 values are lifetime energy values. Consumption and generation energy is
-    #     reset to 0 at the start of the day.
-    # 2 - Only v1 generation is a lifetime energy value.
-    # 3 - Only v3 consumption is a lifetime energy value.
-    n           Net Flag            No          number              1
-    # n parameter when set to 1 will indicate that the power values passed are net export/import
-    # rather than gross generation/consumption. This option is used for devices that are unable to
-    # report gross consumption data. The provided import/export data is merged with existing
-    # generation data to derive consumption.
-    v7          Extended Value v7   No          number      User Defined    Yes
-    v8          Extended Value v8   No          number      User Defined    Yes
-    v9          Extended Value v9   No          number      User Defined    Yes
-    v10         Extended Value v10  No          number      User Defined    Yes
-    v11         Extended Value v11  No          number      User Defined    Yes
-    v12         Extended Value v12  No          number      User Defined    Yes
-    m1          Text Message 1      No          text        30 chars max    Yes
-"""
+# See: https://pvoutput.org/help/api_specification.html#add-status-service
+# Parameter   Field               Required    Format      Unit    Example     Donation
+# d           Output Date         Yes         yyyymmdd    date    20210228
+# t           Time                Yes         hh:mm       time    14:00
+# v1          Energy Generation   No          number      wh      10000
+# v2          Power Generation    No          number      watts   2000
+# v3          Energy Consumption  No          number      wh      10000
+# v4          Power Consumption   No          number      watts   2000
+# At least one of the values v1, v2, v3 or v4 must be present.
+# v5          Temperature         No          decimal     celsius 23.4
+# v6          Voltage             No          decimal     volts   239.2
+# c1          Cumulative Flag     No          number              1
+# 1 - Both v1 and v3 values are lifetime energy values. Consumption and generation energy is
+#     reset to 0 at the start of the day.
+# 2 - Only v1 generation is a lifetime energy value.
+# 3 - Only v3 consumption is a lifetime energy value.
+# n           Net Flag            No          number              1
+# n parameter when set to 1 will indicate that the power values passed are net export/import
+# rather than gross generation/consumption. This option is used for devices that are unable to
+# report gross consumption data. The provided import/export data is merged with existing
+# generation data to derive consumption.
+# v7          Extended Value v7   No          number      User Defined    Yes
+# v8          Extended Value v8   No          number      User Defined    Yes
+# v9          Extended Value v9   No          number      User Defined    Yes
+# v10         Extended Value v10  No          number      User Defined    Yes
+# v11         Extended Value v11  No          number      User Defined    Yes
+# v12         Extended Value v12  No          number      User Defined    Yes
+# m1          Text Message 1      No          text        30 chars max    Yes
 class export_pvoutput(object):
     def __init__(self):
         self.url_base = "https://pvoutput.org/service/r2/"
@@ -143,7 +141,7 @@ class export_pvoutput(object):
                     "PVOutput: Response; %s Message; %s",
                     response.status_code, response.content
                 )
-        except Exception as err:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
         logging.info(
@@ -155,10 +153,10 @@ class export_pvoutput(object):
     def collect_data(self, inverter):
         # Check all required registers have been returned by the inverter
         if not inverter.validateLatestScrape('timestamp'):
-                logging.error(
-                    "PVOutput: Skipped collecting data, Timestamp missing from last scrape"
-                )
-                return False
+            logging.error(
+                "PVOutput: Skipped collecting data, Timestamp missing from last scrape"
+            )
+            return False
         for parameter in self.pvoutput_parameters:
             if not inverter.validateLatestScrape(parameter['register']):
                 logging.error(
@@ -176,9 +174,9 @@ class export_pvoutput(object):
 
             # If using Cumulative Energy we just need the last data point, not the average
             cum_flag = self.pvoutput_config['cumulative_flag']
-            if parameter.get('name') == 'v1' and (cum_flag == 1 or cum_flag == 2):
+            if parameter.get('name') == 'v1' and cum_flag in (1, 2):
                 self.collected_data[parameter.get('name')] = value
-            elif parameter.get('name') == 'v3' and (cum_flag == 1 or cum_flag == 3):
+            elif parameter.get('name') == 'v3' and cum_flag in (1, 3):
                 self.collected_data[parameter.get('name')] = value
             # Add the last data point to the previous data point if exists, otherwise set as last
             elif self.collected_data.get(parameter.get('name'), False):
@@ -200,7 +198,7 @@ class export_pvoutput(object):
     def publish(self, inverter):
         if self.collect_data(inverter):
             # Process data points every status_interval
-            if((time.time() - self.last_publish) >= (self.status_interval * 60)):
+            if (time.time() - self.last_publish) >= (self.status_interval * 60):
                 any_data = False
                 if inverter.validateLatestScrape('timestamp'):
                     now = datetime.datetime.strptime(
@@ -211,11 +209,11 @@ class export_pvoutput(object):
                         field = 'v' + str(x)
                         if self.collected_data.get(field):
                             cum_flag = self.pvoutput_config['cumulative_flag']
-                            if x == 1 and (cum_flag == 1 or cum_flag == 2):
+                            if x == 1 and cum_flag in (1, 2):
                                 value = int(self.collected_data[field])
-                            elif x == 3 and (cum_flag == 1 or cum_flag == 3):
+                            elif x == 3 and cum_flag in (1, 3):
                                 value = int(self.collected_data[field])
-                            elif x == 6 or x == 7:    # Round to 1 decimal place
+                            elif x in (6, 7):    # Round to 1 decimal place
                                 value = round(
                                     self.collected_data[field] / self.collected_data['count'], 1
                                 )
@@ -238,7 +236,7 @@ class export_pvoutput(object):
                     )
 
                 # Max upload is 30, if over 30 then remove the oldest one
-                if self.batch_data.__len__() > 30:
+                if len(self.batch_data) > 30:
                     logging.warning(
                         "PVOutput: Over 30 data points scheduled to upload. "
                         "max is 30 so removing oldest data point"
@@ -247,13 +245,13 @@ class export_pvoutput(object):
 
                 self.batch_count +=1
                 if self.batch_count >= self.pvoutput_config['batch_points']:
-                    if not self.batch_data.__len__() > 0:
+                    if not len(self.batch_data) > 0:
                         logging.warning(
                             "PVOutput: No data collected in last %s minutes, Skipping upload",
                             (self.status_interval * 60) * self.batch_count
                         )
                         return False
-                    elif self.batch_data.__len__() >= 1:
+                    if len(self.batch_data) >= 1:
                         payload_data = None
                         for data in self.batch_data:
                             if payload_data:

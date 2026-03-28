@@ -1,4 +1,5 @@
 """BDD tests for the mqtt export module."""
+# pylint: disable=import-outside-toplevel
 import sys
 from unittest.mock import MagicMock, patch
 

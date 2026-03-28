@@ -73,7 +73,7 @@ class SungrowModbusTcpClient(ModbusTcpClient):
             return self._recv_decipher(size)
         return super().recv(size)
 
-    def _send_cipher(self, request, addr=None):
+    def _send_cipher(self, request, _addr=None):
         self._fifo = bytes()
         length = len(request)
         padding = 16 - (length % 16)

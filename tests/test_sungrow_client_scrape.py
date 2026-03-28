@@ -27,7 +27,7 @@ class TestScrapeTimestamp:
             {'type': 'read', 'start': 5000, 'range': 40}
         ]
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update({
                 'year': 2026, 'month': 3, 'day': 28,
                 'hour': 12, 'minute': 30, 'second': 0,
@@ -53,7 +53,7 @@ class TestScrapeTimestamp:
             {'type': 'read', 'start': 5000, 'range': 40}
         ]
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update({
                 'year': 2026, 'month': 1, 'day': 15,
                 'hour': 10, 'minute': 5, 'second': 30,
@@ -84,7 +84,7 @@ class TestScrapeGridPower:
              'address': 5010, 'datatype': 'S32'},
         ]
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update({
                 'year': 2026, 'month': 3, 'day': 28,
                 'hour': 12, 'minute': 0, 'second': 0,
@@ -112,7 +112,7 @@ class TestScrapeGridPower:
              'address': 5010, 'datatype': 'S32'},
         ]
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update({
                 'year': 2026, 'month': 3, 'day': 28,
                 'hour': 12, 'minute': 0, 'second': 0,
@@ -156,7 +156,7 @@ class TestScrapeDisconnectOnFailure:
 
         call_count = 0
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
@@ -196,7 +196,7 @@ class TestScrapeRunStateContainsBug:
             {'type': 'read', 'start': 5000, 'range': 40}
         ]
 
-        def fake_load(reg_type, start, count):
+        def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update({
                 'year': 2026, 'month': 3, 'day': 28,
                 'hour': 12, 'minute': 0, 'second': 0,

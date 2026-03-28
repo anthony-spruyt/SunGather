@@ -21,27 +21,27 @@ def main():
     loglevel = None
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"hc:r:l:v:", "runonce")
+        opts, _args = getopt.getopt(sys.argv[1:],"hc:r:l:v:", "runonce")
     except getopt.GetoptError:
-        sys.exit(f'No options passed via command line, use -h to see all options')
+        sys.exit('No options passed via command line, use -h to see all options')
 
 
     for opt, arg in opts:
         if opt == '-h':
             print(f'\nSunGather {__version__}')
-            print(f'\nhttps://sungather.app')
-            print(f'usage: python3 sungather.py [options]')
-            print(f'\nCommandling arguments override any config file settings')
-            print(f'Options and arguments:')
-            print(f'-c config.yaml             : Specify config file.')
-            print(f'-r registers-file.yaml     : Specify registers file.')
-            print(f'-l /logs/                  : Specify folder to store logs.')
-            print(f'-v 30                      : Logging Level, 10 = Debug, 20 = Info, '
-                  f'30 = Warning (default), 40 = Error')
-            print(f'--runonce                  : Run once then exit')
-            print(f'-h                         : print this help message and exit (also --help)')
-            print(f'\nExample:')
-            print(f'python3 sungather.py -c /full/path/config.yaml\n')
+            print('\nhttps://sungather.app')
+            print('usage: python3 sungather.py [options]')
+            print('\nCommandling arguments override any config file settings')
+            print('Options and arguments:')
+            print('-c config.yaml             : Specify config file.')
+            print('-r registers-file.yaml     : Specify registers file.')
+            print('-l /logs/                  : Specify folder to store logs.')
+            print('-v 30                      : Logging Level, 10 = Debug, 20 = Info, '
+                  '30 = Warning (default), 40 = Error')
+            print('--runonce                  : Run once then exit')
+            print('-h                         : print this help message and exit (also --help)')
+            print('\nExample:')
+            print('python3 sungather.py -c /full/path/config.yaml\n')
             sys.exit()
         elif opt == '-c':
             configfilename = arg
@@ -70,20 +70,22 @@ def main():
     logging.info('Need Help? https://github.com/anthony-spruyt/SunGather')
 
     try:
-        configfile = yaml.safe_load(open(configfilename, encoding="utf-8"))
+        with open(configfilename, encoding="utf-8") as configfh:
+            configfile = yaml.safe_load(configfh)
         logging.info("Loaded config: %s", configfilename)
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         logging.error("Failed: Loading config: %s \n\t\t\t     %s", configfilename, err)
         sys.exit(1)
     if not configfile.get('inverter'):
         logging.error("Failed Loading config, missing Inverter settings")
-        sys.exit(f"Failed Loading config, missing Inverter settings")
+        sys.exit("Failed Loading config, missing Inverter settings")
 
     try:
-        registersfile = yaml.safe_load(open(registersfilename, encoding="utf-8"))
+        with open(registersfilename, encoding="utf-8") as regfh:
+            registersfile = yaml.safe_load(regfh)
         logging.info("Loaded registers: %s", registersfilename)
         logging.info("Registers file version: %s", registersfile.get('version','UNKNOWN'))
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         logging.error("Failed: Loading registers: %s  %s", registersfilename, err)
         sys.exit(f"Failed: Loading registers: {registersfilename} {err}")
 
@@ -122,7 +124,7 @@ def main():
             logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
 
     logging.info("Logging to console set to: %s", logging.getLevelName(logger.handlers[0].level))
-    if logger.handlers.__len__() == 3:
+    if len(logger.handlers) == 3:
         logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[2].level))
 
     logging.debug('Inverter Config Loaded: %s', config_inverter)
@@ -144,7 +146,8 @@ def main():
         )
 
     inverter.configure_registers(registersfile)
-    if not inverter.inverter_config['connection'] == "http": inverter.close()
+    if not inverter.inverter_config['connection'] == "http":
+        inverter.close()
 
     # Now we know the inverter is working, lets load the exports
     exports = []
@@ -155,7 +158,7 @@ def main():
                     export_load = importlib.import_module("exports." + export.get('name'))
                     logging.info("Loading Export: exports %s", export.get('name'))
                     exports.append(getattr(export_load, "export_" + export.get('name'))())
-                    retval = exports[-1].configure(export, inverter)
+                    _retval = exports[-1].configure(export, inverter)
             except Exception as err:
                 logging.error(
                     "Failed loading export: %s -- check %s.py exists in exports/",
@@ -179,10 +182,11 @@ def main():
             logging.exception("Failed to scrape: %s", e)
             success = False
 
-        if(success):
+        if success:
             for export in exports:
                 export.publish(inverter)
-            if not inverter.inverter_config['connection'] == "http": inverter.close()
+            if not inverter.inverter_config['connection'] == "http":
+                inverter.close()
         else:
             inverter.disconnect()
             logging.warning(
@@ -209,10 +213,10 @@ def main():
             logging.info('Next scrape in %s secs', int(scan_interval - process_time))
             time.sleep(scan_interval - process_time)
 
-def handle_sigterm(signum, frame):
+def handle_sigterm(_signum, _frame):
     print("Received SIGTERM, shutting down gracefully...")
     # Perform any cleanup here
-    exit(0)
+    sys.exit(0)
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',

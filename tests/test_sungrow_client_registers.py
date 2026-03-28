@@ -107,7 +107,7 @@ class TestConfigureRegistersModelDetection:
         client = make_client(model=None)
         registersfile = load_test_registers()
 
-        def fake_load_registers(reg_type, start, count):
+        def fake_load_registers(_reg_type, _start, _count):
             client.latest_scrape['device_type_code'] = 'SG10KTL'
             return True
 

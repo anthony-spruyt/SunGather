@@ -1,5 +1,5 @@
 """BDD tests for the pvoutput export module."""
-import time
+# pylint: disable=import-outside-toplevel
 from unittest.mock import MagicMock, patch
 
 
@@ -76,7 +76,7 @@ class TestPublish:
 
         call_count = 0
 
-        def post_side_effect(*args, **kwargs):
+        def post_side_effect(*_args, **_kwargs):
             nonlocal call_count
             call_count += 1
             if call_count == 1:

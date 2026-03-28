@@ -3,30 +3,27 @@ class export_console(object):
         pass
 
     # Configure Console
-    def configure(self, config, inverter):
+    def configure(self, _config, inverter):
         print("+----------------------------------------------+")
-        print("{:<46} {:<1}".format("| " + 'Inverter Configuration Settings',"|"))
+        print(f"{'| Inverter Configuration Settings':<46} {'|':<1}")
         print("+----------------------------------------------+")
-        print("{:<20} {:<25} {:<1}".format("| " + 'Config',"| " + 'Value', "|"))
+        print(f"{'| Config':<20} {'| Value':<25} {'|':<1}")
         print("+--------------------+-------------------------+")
         for setting, value in inverter.client_config.items():
-            print("{:<20} {:<25} {:<1}".format("| " + str(setting), "| " + str(value), "|"))
+            print(f"{'| ' + str(setting):<20} {'| ' + str(value):<25} {'|':<1}")
         for setting, value in inverter.inverter_config.items():
-            print("{:<20} {:<25} {:<1}".format("| " + str(setting), "| " + str(value), "|"))
+            print(f"{'| ' + str(setting):<20} {'| ' + str(value):<25} {'|':<1}")
         print("+----------------------------------------------+")
 
         return True
 
     def publish(self, inverter):
         print("+----------------------------------------------------------------------+")
-        print("| {:<7} | {:<35} | {:<20} |".format('Address', 'Register','Value'))
+        print(f"| {'Address':<7} | {'Register':<35} | {'Value':<20} |")
         print("+---------+-------------------------------------+----------------------+")
         for register, value in inverter.latest_scrape.items():
-            print("| {:<7} | {:<35} | {:<20} |".format(
-                str(inverter.getRegisterAddress(register)),
-                str(register),
-                str(value) + " " + str(inverter.getRegisterUnit(register))
-            ))
+            print(f"| {str(inverter.getRegisterAddress(register)):<7} | {str(register):<35}"
+                  f" | {str(value) + ' ' + str(inverter.getRegisterUnit(register)):<20} |")
         print("+----------------------------------------------------------------------+")
         print(f"Logged {len(inverter.latest_scrape)} registers to Console")
 

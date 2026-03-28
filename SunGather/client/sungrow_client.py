@@ -54,8 +54,10 @@ class SungrowClient():
 
     def connect(self):
         if self.client:
-            try: self.client.connect()
-            except: return False
+            try:
+                self.client.connect()
+            except Exception:  # pylint: disable=broad-exception-caught
+                return False
             return True
 
         host = self.client_config['host']
@@ -78,8 +80,10 @@ class SungrowClient():
             return False
         logging.info("Connection: %s", self.client)
 
-        try: self.client.connect()
-        except: return False
+        try:
+            self.client.connect()
+        except Exception:  # pylint: disable=broad-exception-caught
+            return False
 
         time.sleep(3)
         return True
@@ -90,22 +94,24 @@ class SungrowClient():
             if self.client.connected:
                 logging.debug("Modbus, Session is still connected")
                 return True
-            else:
-                logging.info('Modbus, Connecting new session')
-                return self.connect()
-        else:
-            logging.info('Modbus client is not connected, attempting to reconnect')
+            logging.info('Modbus, Connecting new session')
             return self.connect()
+        logging.info('Modbus client is not connected, attempting to reconnect')
+        return self.connect()
 
     def close(self):
         logging.info("Closing Session: %s", self.client)
-        try: self.client.close()
-        except: pass
+        try:
+            self.client.close()
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
 
     def disconnect(self):
         logging.info("Disconnecting: %s", self.client)
-        try: self.client.close()
-        except: pass
+        try:
+            self.client.close()
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass
         self.client = None
 
     def configure_registers(self,registersfile):
@@ -284,23 +290,23 @@ class SungrowClient():
                             # Filter the value through the mask.
                             register_value = 1 if register_value & register.get('mask') != 0 else 0
                     elif register.get('datatype') == "S16":
-                        if register_value == 0xFFFF or register_value == 0x7FFF:
+                        if register_value in (0xFFFF, 0x7FFF):
                             register_value = 0
                         if register_value >= 32767:  # Anything > 32767 is negative for 16bit
-                            register_value = (register_value - 65536)
+                            register_value = register_value - 65536
                     elif register.get('datatype') == "U32":
                         u32_value = rr.registers[num+1]
                         if register_value == 0xFFFF and u32_value == 0xFFFF:
                             register_value = 0
                         else:
-                            register_value = (register_value + u32_value * 0x10000)
+                            register_value = register_value + u32_value * 0x10000
                     elif register.get('datatype') == "S32":
                         u32_value = rr.registers[num+1]
-                        s32_zero = (u32_value == 0xFFFF or u32_value == 0x7FFF)
+                        s32_zero = u32_value in (0xFFFF, 0x7FFF)
                         if register_value == 0xFFFF and s32_zero:
                             register_value = 0
                         elif u32_value >= 32767:  # Anything greater than 32767 is a negative
-                            register_value = (register_value + u32_value * 0x10000 - 0xffffffff -1)
+                            register_value = register_value + u32_value * 0x10000 - 0xffffffff - 1
                         else:
                             register_value = register_value + u32_value * 0x10000
                     elif register.get('datatype') == "UTF-8":  # Serial only, 10 bytes
@@ -360,7 +366,7 @@ class SungrowClient():
         return ''
 
     def validateLatestScrape(self, check_register):
-        for register, value in self.latest_scrape.items():
+        for register, _value in self.latest_scrape.items():
             if check_register == register:
                 return True
         return False
@@ -377,8 +383,7 @@ class SungrowClient():
     def getInverterModel(self, clean=False):
         if clean:
             return self.inverter_config['model'].replace('.','').replace('-','')
-        else:
-            return self.inverter_config['model']
+        return self.inverter_config['model']
 
     def getSerialNumber(self):
         return self.inverter_config['serial_number']
@@ -403,14 +408,15 @@ class SungrowClient():
         load_registers_count = 0
         load_registers_failed = 0
 
-        for range in self.register_ranges:
+        for reg_range in self.register_ranges:
             load_registers_count +=1
             logging.debug(
-                'Scraping: %s, %s:%s', range.get("type"), range.get("start"), range.get("range")
+                'Scraping: %s, %s:%s',
+                reg_range.get("type"), reg_range.get("start"), reg_range.get("range")
             )
-            rng_type = range.get('type')
-            rng_start = int(range.get('start'))
-            rng_range = int(range.get('range'))
+            rng_type = reg_range.get('type')
+            rng_start = int(reg_range.get('start'))
+            rng_range = int(reg_range.get('range'))
             if not self.load_registers(rng_type, rng_start, rng_range):
                 load_registers_failed +=1
         if load_registers_failed == load_registers_count:
@@ -439,13 +445,10 @@ class SungrowClient():
             del self.latest_scrape["second"]
         else:
             try:
-                self.latest_scrape["timestamp"] = "%s-%s-%s %s:%02d:%02d" % (
-                    self.latest_scrape["year"],
-                    self.latest_scrape["month"],
-                    self.latest_scrape["day"],
-                    self.latest_scrape["hour"],
-                    self.latest_scrape["minute"],
-                    self.latest_scrape["second"],
+                self.latest_scrape["timestamp"] = (
+                    f"{self.latest_scrape['year']}-{self.latest_scrape['month']}"
+                    f"-{self.latest_scrape['day']} {self.latest_scrape['hour']}"
+                    f":{self.latest_scrape['minute']:02d}:{self.latest_scrape['second']:02d}"
                 )
                 logging.debug('Using Inverter Time: %s', self.latest_scrape.get("timestamp"))
                 del self.latest_scrape["year"]
@@ -466,18 +469,17 @@ class SungrowClient():
                 del self.latest_scrape["hour"]
                 del self.latest_scrape["minute"]
                 del self.latest_scrape["second"]
-                pass
 
         # If alarm state exists then convert to timestamp, otherwise remove it
         try:
             if self.latest_scrape["pid_alarm_code"]:
-                self.latest_scrape["alarm_timestamp"] = "%s-%s-%s %s:%02d:%02d" % (
-                    self.latest_scrape["alarm_time_year"],
-                    self.latest_scrape["alarm_time_month"],
-                    self.latest_scrape["alarm_time_day"],
-                    self.latest_scrape["alarm_time_hour"],
-                    self.latest_scrape["alarm_time_minute"],
-                    self.latest_scrape["alarm_time_second"],
+                self.latest_scrape["alarm_timestamp"] = (
+                    f"{self.latest_scrape['alarm_time_year']}"
+                    f"-{self.latest_scrape['alarm_time_month']}"
+                    f"-{self.latest_scrape['alarm_time_day']}"
+                    f" {self.latest_scrape['alarm_time_hour']}"
+                    f":{self.latest_scrape['alarm_time_minute']:02d}"
+                    f":{self.latest_scrape['alarm_time_second']:02d}"
                 )
             del self.latest_scrape["alarm_time_year"]
             del self.latest_scrape["alarm_time_month"]

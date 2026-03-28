@@ -158,28 +158,27 @@ class export_mqtt(object):
                         ha_sensor['register']
                     )
                     return False
-                else:
-                    self.ha_sensors.append(ha_sensor)
+                self.ha_sensors.append(ha_sensor)
 
         return True
 
-    def on_connect(self, client, userdata, flags, reason_code, properties):
+    def on_connect(self, client, _userdata, _flags, reason_code, _properties):
         if reason_code == 0:
             logging.info("MQTT: Connected to %s:%s", client._host, client._port)
         if reason_code > 0:
             logging.warning("MQTT: FAILED to connect %s:%s", client._host, client._port)
 
-    def on_disconnect(self, client, userdata, flags, reason_code, properties):
+    def on_disconnect(self, _client, _userdata, _flags, reason_code, _properties):
         if reason_code == 0:
             logging.info("MQTT: Server Disconnected")
         if reason_code > 0:
             logging.warning("MQTT: FAILED to disconnect %s", reason_code)
 
 
-    def on_publish(self, client, userdata, mid, reason_codes, properties):
+    def on_publish(self, _client, _userdata, mid, _reason_codes, _properties):
         try:
             self.mqtt_queue.remove(mid)
-        except Exception as err:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
         logging.debug("MQTT: Message %s Published", mid)
 
@@ -192,9 +191,9 @@ class export_mqtt(object):
                 logging.warning(
                     'MQTT: Server Disconnected; %s messages queued, '
                     'will automatically attempt to reconnect',
-                    self.mqtt_queue.__len__()
+                    len(self.mqtt_queue)
                 )
-        except Exception as err:
+        except Exception:  # pylint: disable=broad-exception-caught
             logging.warning('MQTT: Server Error; Server not configured')
             return False
         # qos=0 is set, so no acknowledgment is sent, rending this check useless

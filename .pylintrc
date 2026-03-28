@@ -28,4 +28,4 @@ max-line-length = 100
 [DESIGN]
 max-args = 6
 max-positional-arguments = 6
-max-instance-attributes = 15
+max-attributes = 15

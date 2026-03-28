@@ -20,6 +20,7 @@ def _docker_available():
         ['docker', 'info'],
         capture_output=True,
         timeout=10,
+        check=False,
     )
     return result.returncode == 0
 
@@ -52,6 +53,7 @@ class TestContainerSmoke:
             text=True,
             cwd=REPO_ROOT,
             timeout=300,
+            check=False,
         )
         assert build.returncode == 0, (
             f"Docker build failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
@@ -68,6 +70,7 @@ class TestContainerSmoke:
             capture_output=True,
             text=True,
             timeout=60,
+            check=False,
         )
         cls.combined_output = cls.result.stdout + cls.result.stderr
 

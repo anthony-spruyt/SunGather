@@ -1,3 +1,4 @@
+# pylint: disable=import-outside-toplevel
 def test_vendored_client_exposes_expected_api():
     """Vendored client package should expose all required methods."""
     from client.sungrow_client import SungrowClient
@@ -22,7 +23,7 @@ def test_sungather_calls_sungrow_client_as_class_not_module_attr():
     sungather_path = os.path.join(
         os.path.dirname(__file__), '..', 'SunGather', 'sungather.py'
     )
-    with open(sungather_path) as f:
+    with open(sungather_path, encoding='utf-8') as f:
         tree = ast.parse(f.read())
 
     # Find all attribute accesses of the form SungrowClient.SungrowClient
@@ -36,7 +37,7 @@ def test_sungather_calls_sungrow_client_as_class_not_module_attr():
         ):
             bad_calls.append(node.lineno)
 
-    assert bad_calls == [], (
+    assert not bad_calls, (
         f"sungather.py uses SungrowClient.SungrowClient on line(s) {bad_calls}. "
         f"SungrowClient is imported as a class, not a module — call it directly."
     )

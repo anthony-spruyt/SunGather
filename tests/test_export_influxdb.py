@@ -1,6 +1,7 @@
 """BDD tests for the influxdb export module."""
+# pylint: disable=import-outside-toplevel
 import sys
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 
 def make_inverter(**overrides):
@@ -97,7 +98,7 @@ class TestPublish:
 
     def test_publish_writes_point_sequence(self):
         """publish() calls write_api.write() with a sequence of Points."""
-        mock_module, mock_client_instance, mock_write_api = _make_influxdb_mock()
+        mock_module, _mock_client_instance, mock_write_api = _make_influxdb_mock()
         with patch.dict(sys.modules, {
             'influxdb_client': mock_module,
             'influxdb_client.client': mock_module.client,
@@ -113,7 +114,7 @@ class TestPublish:
 
     def test_publish_handles_connection_error(self):
         """publish() catches write errors and still returns True."""
-        mock_module, mock_client_instance, mock_write_api = _make_influxdb_mock()
+        mock_module, _mock_client_instance, mock_write_api = _make_influxdb_mock()
         mock_write_api.write.side_effect = Exception("connection refused")
         with patch.dict(sys.modules, {
             'influxdb_client': mock_module,
