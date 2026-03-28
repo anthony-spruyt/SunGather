@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 import json
 import logging
+import socket
 import urllib
 
 
@@ -17,6 +18,8 @@ class export_webserver(object):
     html_body = "Pending Data Retrieval"
     metrics = ""
     last_successful_scrape = None
+    inverter_host = None
+    inverter_port = 502
     scan_interval = 30
     def __init__(self):
         False
@@ -24,6 +27,8 @@ class export_webserver(object):
     # Configure Webserver
     def configure(self, config, inverter):
         export_webserver.scan_interval = inverter.inverter_config['scan_interval']
+        export_webserver.inverter_host = inverter.client_config.get('host')
+        export_webserver.inverter_port = inverter.client_config.get('port', 502)
         try:
             self.webServer = HTTPServer(('', config.get('port',8080)), MyServer)
             self.t = Thread(target=self.webServer.serve_forever)
@@ -84,27 +89,54 @@ class export_webserver(object):
         export_webserver.json = json.dumps(json_array)
         return True
 
+def check_inverter_reachable(host, port, timeout=2):
+    """TCP connect check — if port accepts a connection, inverter is on."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (OSError, socket.timeout):
+        return False
+
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health':
             threshold = export_webserver.scan_interval * 3
-            if export_webserver.last_successful_scrape is None:
+            host = export_webserver.inverter_host
+            port = export_webserver.inverter_port
+            last = export_webserver.last_successful_scrape
+
+            # Check if inverter is reachable right now
+            reachable = check_inverter_reachable(host, port) if host else False
+
+            if not reachable:
+                # Inverter is off (night) or unreachable — that's fine
                 status = 200
-                body = {"status": "ok", "last_scrape_age_seconds": None,
+                body = {"status": "ok", "detail": "inverter_offline",
+                        "inverter_reachable": False,
+                        "last_scrape_age_seconds": None,
                         "threshold_seconds": threshold}
-            else:
-                age = (datetime.now() - export_webserver.last_successful_scrape
-                       ).total_seconds()
+            elif last is not None:
+                age = (datetime.now() - last).total_seconds()
                 if age < threshold:
                     status = 200
-                    body = {"status": "ok",
+                    body = {"status": "ok", "detail": "fresh",
+                            "inverter_reachable": True,
                             "last_scrape_age_seconds": round(age, 1),
                             "threshold_seconds": threshold}
                 else:
+                    # Inverter is on but data is stale — something is wrong
                     status = 503
-                    body = {"status": "stale",
+                    body = {"status": "stale", "detail": "scrape_failing",
+                            "inverter_reachable": True,
                             "last_scrape_age_seconds": round(age, 1),
                             "threshold_seconds": threshold}
+            else:
+                # Inverter is reachable but we've never scraped successfully
+                status = 503
+                body = {"status": "stale", "detail": "connected_not_scraping",
+                        "inverter_reachable": True,
+                        "last_scrape_age_seconds": None,
+                        "threshold_seconds": threshold}
             self.send_response(status)
             self.send_header("Content-type", "application/json")
             self.end_headers()
