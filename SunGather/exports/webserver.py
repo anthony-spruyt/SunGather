@@ -28,7 +28,12 @@ class export_webserver(object):
     def configure(self, config, inverter):
         export_webserver.scan_interval = inverter.inverter_config['scan_interval']
         export_webserver.inverter_host = inverter.client_config.get('host')
-        export_webserver.inverter_port = inverter.client_config.get('port', 502)
+        # HTTP mode overrides port to 8082 inside SungrowClient.connect(),
+        # so use that for the reachability check instead of the config port.
+        if inverter.inverter_config.get('connection') == 'http':
+            export_webserver.inverter_port = 8082
+        else:
+            export_webserver.inverter_port = inverter.client_config.get('port', 502)
         try:
             self.webServer = HTTPServer(('', config.get('port',8080)), MyServer)
             self.t = Thread(target=self.webServer.serve_forever)
@@ -90,11 +95,13 @@ class export_webserver(object):
         return True
 
 def check_inverter_reachable(host, port, timeout=2):
-    """TCP connect check — if port accepts a connection, inverter is on."""
+    """TCP connect to the inverter's Modbus/HTTP port. Returns True if the
+    port accepts a connection, indicating the inverter is powered on.
+    Note: for HTTP-mode inverters this checks port 8082, not the Modbus port."""
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return True
-    except (OSError, socket.timeout):
+    except OSError:
         return False
 
 class MyServer(BaseHTTPRequestHandler):
@@ -105,8 +112,22 @@ class MyServer(BaseHTTPRequestHandler):
             port = export_webserver.inverter_port
             last = export_webserver.last_successful_scrape
 
+            if not host:
+                # configure() was never called or host is missing
+                logging.warning("Health check: inverter host not configured")
+                status = 503
+                body = {"status": "error", "detail": "not_configured",
+                        "inverter_reachable": False,
+                        "last_scrape_age_seconds": None,
+                        "threshold_seconds": threshold}
+                self.send_response(status)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(bytes(json.dumps(body), "utf-8"))
+                return
+
             # Check if inverter is reachable right now
-            reachable = check_inverter_reachable(host, port) if host else False
+            reachable = check_inverter_reachable(host, port)
 
             if not reachable:
                 # Inverter is off (night) or unreachable — that's fine

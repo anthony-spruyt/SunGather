@@ -121,6 +121,17 @@ class TestHealthConnectedNeverScraped:
         assert body['inverter_reachable'] is True
 
 
+class TestHealthNotConfigured:
+    """Host not set — 503 with not_configured detail."""
+
+    def test_host_none_returns_503(self):
+        export_webserver.inverter_host = None
+        code, body, _ = make_request('/health', inverter_reachable=False)
+        assert code == 503
+        assert body['detail'] == 'not_configured'
+        assert body['status'] == 'error'
+
+
 class TestHealthContentType:
     def test_health_returns_json_content_type(self):
         _, _, handler = make_request('/health', inverter_reachable=False)
@@ -139,8 +150,7 @@ class TestCheckInverterReachable:
             assert check_inverter_reachable('192.168.1.100', 502) is False
 
     def test_timeout(self):
-        import socket as sock_module
-        with patch('exports.webserver.socket.create_connection', side_effect=sock_module.timeout):
+        with patch('exports.webserver.socket.create_connection', side_effect=TimeoutError):
             assert check_inverter_reachable('192.168.1.100', 502) is False
 
 
@@ -163,7 +173,7 @@ class TestConfigureStoresInverterInfo:
     def test_configure_stores_scan_interval_and_host(self):
         ws = export_webserver()
         inverter = MagicMock()
-        inverter.inverter_config = {'scan_interval': 60}
+        inverter.inverter_config = {'scan_interval': 60, 'connection': 'modbus'}
         inverter.client_config = {'host': '10.0.0.1', 'port': 502}
         config = {'port': 8099, 'enabled': True, 'name': 'webserver'}
         with patch('exports.webserver.HTTPServer'):
@@ -171,4 +181,26 @@ class TestConfigureStoresInverterInfo:
                 ws.configure(config, inverter)
         assert export_webserver.scan_interval == 60
         assert export_webserver.inverter_host == '10.0.0.1'
+        assert export_webserver.inverter_port == 502
+
+    def test_configure_http_mode_uses_port_8082(self):
+        ws = export_webserver()
+        inverter = MagicMock()
+        inverter.inverter_config = {'scan_interval': 30, 'connection': 'http'}
+        inverter.client_config = {'host': '10.0.0.1', 'port': 502}
+        config = {'port': 8099, 'enabled': True, 'name': 'webserver'}
+        with patch('exports.webserver.HTTPServer'):
+            with patch('exports.webserver.Thread'):
+                ws.configure(config, inverter)
+        assert export_webserver.inverter_port == 8082
+
+    def test_configure_sungrow_mode_uses_config_port(self):
+        ws = export_webserver()
+        inverter = MagicMock()
+        inverter.inverter_config = {'scan_interval': 30, 'connection': 'sungrow'}
+        inverter.client_config = {'host': '10.0.0.1', 'port': 502}
+        config = {'port': 8099, 'enabled': True, 'name': 'webserver'}
+        with patch('exports.webserver.HTTPServer'):
+            with patch('exports.webserver.Thread'):
+                ws.configure(config, inverter)
         assert export_webserver.inverter_port == 502
