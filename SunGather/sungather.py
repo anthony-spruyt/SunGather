@@ -16,6 +16,8 @@ def main():
     configfilename = 'config.yaml'
     registersfilename = 'registers-sungrow.yaml'
     logfolder = ''
+    runonce = False
+    loglevel = None
 
     try:
         opts, args = getopt.getopt(sys.argv[1:],"hc:r:l:v:", "runonce")
@@ -95,7 +97,7 @@ def main():
         "level": configfile['inverter'].get('level',1)
     }
 
-    if 'loglevel' in locals():
+    if loglevel is not None:
         logger.handlers[0].setLevel(loglevel)
     else:
         logger.handlers[0].setLevel(config_inverter['log_console'])
@@ -172,7 +174,7 @@ def main():
         process_time = round(loop_end - loop_start, 2)
         logging.debug(f'Processing Time: {process_time} secs')
 
-        if 'runonce' in locals():
+        if runonce:
             sys.exit(0)
 
         # Sleep until the next scan
