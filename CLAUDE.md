@@ -46,8 +46,18 @@ python -m pytest tests/test_sungather.py -v
 Three GitHub Actions workflows in `.github/workflows/`:
 
 - `ci.yaml` - Lint (pre-commit), build Docker image, run tests, Trivy scan on PRs
-- `release.yaml` - Build and push multi-platform images (amd64, arm64, arm/v7) to GHCR on release
+- `release.yaml` - **Workflow dispatch only.** Computes the next semver, builds and pushes the Docker image (amd64) to GHCR, creates the git tag, and creates the GitHub Release — all automatically. **Do NOT manually create tags or GitHub Releases; the workflow handles everything.**
 - `trivy-scan.yaml` - Daily vulnerability scan of published container images
+
+### Releasing
+
+Releases are done **exclusively** via the `release.yaml` workflow dispatch in GitHub Actions:
+
+1. Go to Actions → Release → Run workflow
+2. Select the bump type (patch / minor / major)
+3. The workflow computes the version, runs tests, builds the image, pushes it, creates the git tag, and creates the GitHub Release
+
+**Never manually create git tags or GitHub Releases.** Tags are immutable — a manual tag will conflict with the automated workflow and cannot be reused.
 
 ## Architecture
 
