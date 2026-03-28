@@ -62,6 +62,7 @@ class SungrowClient():
 
         if self.inverter_config['connection'] == "http":
             config['port'] = 8082
+            # host passed as keyword — SungrowModbusWebClient declares it with a default, unlike the other clients
             self.client = SungrowModbusWebClient(host=host, **config)
         elif self.inverter_config['connection'] == "sungrow":
             self.client = SungrowModbusTcpClient(host, **config)
