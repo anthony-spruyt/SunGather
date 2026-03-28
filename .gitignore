@@ -9,8 +9,8 @@ node_modules/
 
 # Worktrees
 .worktrees/
+.claude/worktrees/
 
 # Python
 __pycache__/
 *.py[cod]
-.claude/worktrees/
