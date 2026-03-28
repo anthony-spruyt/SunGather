@@ -14,7 +14,7 @@ from .sungrow_modbus_web_client import SungrowModbusWebClient
 class SungrowClient():
     def __init__(self, config_inverter):
 
-        logging.info(f'Loading SungrowClient {__version__}')
+        logging.info('Loading SungrowClient %s', __version__)
 
         self.client_config = {
             "host":     config_inverter.get('host'),
@@ -70,12 +70,11 @@ class SungrowClient():
             self.client = ModbusTcpClient(host, **config)
         else:
             logging.warning(
-                f"Inverter: Unknown connection type "
-                f"{self.inverter_config['connection']}, "
-                f"Valid options are http, sungrow or modbus"
+                "Inverter: Unknown connection type %s, Valid options are http, sungrow or modbus",
+                self.inverter_config['connection']
             )
             return False
-        logging.info("Connection: " + str(self.client))
+        logging.info("Connection: %s", self.client)
 
         try: self.client.connect()
         except: return False
@@ -97,12 +96,12 @@ class SungrowClient():
             return self.connect()
 
     def close(self):
-        logging.info("Closing Session: " + str(self.client))
+        logging.info("Closing Session: %s", self.client)
         try: self.client.close()
         except: pass
 
     def disconnect(self):
-        logging.info("Disconnecting: " + str(self.client))
+        logging.info("Disconnecting: %s", self.client)
         try: self.client.close()
         except: pass
         self.client = None
@@ -110,7 +109,7 @@ class SungrowClient():
     def configure_registers(self,registersfile):
         # Check model so we can load only valid registers
         if self.inverter_config.get('model'):
-            logging.info(f"Bypassing Model Detection, Using config: {self.inverter_config.get('model')}")
+            logging.info("Bypassing Model Detection, Using config: %s", self.inverter_config.get('model'))
         else:
             # Load just the register to detect model, then we can load the rest of registers based on returned model
             for register in registersfile['registers'][0]['read']:
@@ -119,17 +118,17 @@ class SungrowClient():
                     self.registers.append(register)
                     if self.load_registers(register['type'], register['address'] -1, 1): # Needs to be address -1
                         if isinstance(self.latest_scrape.get('device_type_code'),int):
-                            logging.warning(f"Unknown Type Code Detected: {self.latest_scrape.get('device_type_code')}")
+                            logging.warning("Unknown Type Code Detected: %s", self.latest_scrape.get('device_type_code'))
                         else:
                             self.inverter_config['model'] = self.latest_scrape.get('device_type_code')
-                            logging.info(f"Detected Model: {self.inverter_config.get('model')}")
+                            logging.info("Detected Model: %s", self.inverter_config.get('model'))
                     else:
-                        logging.info(f'Model detection failed, please set model in config.py')
+                        logging.info('Model detection failed, please set model in config.py')
                     self.registers.pop()
                     break
 
         if self.inverter_config.get('serial_number'):
-            logging.info(f"Bypassing Serial Detection, Using config: {self.inverter_config.get('serial_number')}")
+            logging.info("Bypassing Serial Detection, Using config: %s", self.inverter_config.get('serial_number'))
         else:
             # Load just the register to detect serial number, then we can load the rest of registers based on returned model
             for register in registersfile['registers'][0]['read']:
@@ -138,12 +137,12 @@ class SungrowClient():
                     self.registers.append(register)
                     if self.load_registers(register['type'], register['address'] -1, 10): # Needs to be address -1
                         if isinstance(self.latest_scrape.get('serial_number'),int):
-                            logging.warning(f"Unknown Type Code Detected: {self.latest_scrape.get('serial_number')}")
+                            logging.warning("Unknown Type Code Detected: %s", self.latest_scrape.get('serial_number'))
                         else:
                             self.inverter_config['serial_number'] = self.latest_scrape.get('serial_number')
-                            logging.info(f"Detected Serial: {self.inverter_config.get('serial_number')}")
+                            logging.info("Detected Serial: %s", self.inverter_config.get('serial_number'))
                     else:
-                        logging.info(f'Serial detection failed, please set serial number in config.py')
+                        logging.info('Serial detection failed, please set serial number in config.py')
                     self.registers.pop()
                     break
 
@@ -205,7 +204,7 @@ class SungrowClient():
 
     def load_registers(self, register_type, start, count=100):
         try:
-            logging.debug(f'load_registers: {register_type}, {start}:{count}')
+            logging.debug('load_registers: %s, %s:%s', register_type, start, count)
             if register_type == "read":
                 rr = self.client.read_input_registers(start, count=count, device_id=self.inverter_config['slave'])
             elif register_type == "hold":
@@ -213,13 +212,13 @@ class SungrowClient():
             else:
                 raise RuntimeError(f"Unsupported register type: {type}")
         except Exception as err:
-            logging.warning(f"No data returned for {register_type}, {start}:{count}")
-            logging.debug(f"{str(err)}')")
+            logging.warning("No data returned for %s, %s:%s", register_type, start, count)
+            logging.debug("%s", err)
             return False
 
         if rr.isError():
-            logging.warning(f"Modbus connection failed")
-            logging.debug(f"{rr}")
+            logging.warning("Modbus connection failed")
+            logging.debug("%s", rr)
             return False
 
         if not hasattr(rr, 'registers'):
@@ -227,7 +226,7 @@ class SungrowClient():
             return False
 
         if len(rr.registers) != count:
-            logging.warning(f"Mismatched number of registers read {len(rr.registers)} != {count}")
+            logging.warning("Mismatched number of registers read %s != %s", len(rr.registers), count)
             return False
 
         for num in range(0, count):
@@ -282,7 +281,7 @@ class SungrowClient():
                                 match = True
                         if not match:
                             default = register.get('default')
-                            logging.debug(f"No matching value for {register_value} in datarange of {register_name}, using default {default}")
+                            logging.debug("No matching value for %s in datarange of %s, using default %s", register_value, register_name, default)
                             register_value = default
 
                     if register.get('accuracy'):
@@ -365,7 +364,7 @@ class SungrowClient():
 
         for range in self.register_ranges:
             load_registers_count +=1
-            logging.debug(f'Scraping: {range.get("type")}, {range.get("start")}:{range.get("range")}')
+            logging.debug('Scraping: %s, %s:%s', range.get("type"), range.get("start"), range.get("range"))
             if not self.load_registers(range.get('type'), int(range.get('start')), int(range.get('range'))):
                 load_registers_failed +=1
         if load_registers_failed == load_registers_count:
@@ -374,7 +373,7 @@ class SungrowClient():
             self.disconnect()
             return False
         if load_registers_failed > 0:
-            logging.info(f'Scraping: {load_registers_failed}/{load_registers_count} registers failed to scrape')
+            logging.info('Scraping: %s/%s registers failed to scrape', load_registers_failed, load_registers_count)
 
         # Leave connection open, see if helps resolve the connection issues
         #self.close()
@@ -382,7 +381,7 @@ class SungrowClient():
         ## vr002
         if self.inverter_config.get('use_local_time',False):
             self.latest_scrape["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            logging.debug(f'Using Local Computer Time: {self.latest_scrape.get("timestamp")}')
+            logging.debug('Using Local Computer Time: %s', self.latest_scrape.get("timestamp"))
             del self.latest_scrape["year"]
             del self.latest_scrape["month"]
             del self.latest_scrape["day"]
@@ -399,7 +398,7 @@ class SungrowClient():
                     self.latest_scrape["minute"],
                     self.latest_scrape["second"],
                 )
-                logging.debug(f'Using Inverter Time: {self.latest_scrape.get("timestamp")}')
+                logging.debug('Using Inverter Time: %s', self.latest_scrape.get("timestamp"))
                 del self.latest_scrape["year"]
                 del self.latest_scrape["month"]
                 del self.latest_scrape["day"]
@@ -408,7 +407,7 @@ class SungrowClient():
                 del self.latest_scrape["second"]
             except Exception:
                 self.latest_scrape["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                logging.warning(f'Failed to get Timestamp from Inverter, using Local Time: {self.latest_scrape.get("timestamp")}')
+                logging.warning('Failed to get Timestamp from Inverter, using Local Time: %s', self.latest_scrape.get("timestamp"))
                 del self.latest_scrape["year"]
                 del self.latest_scrape["month"]
                 del self.latest_scrape["day"]
@@ -446,13 +445,13 @@ class SungrowClient():
         # to help with graphing.
         try:
             if self.latest_scrape.get('start_stop'):
-                logging.debug(f"start_stop:{self.latest_scrape.get('start_stop', 'null')} work_state_1:{self.latest_scrape.get('work_state_1', 'null')}")
+                logging.debug("start_stop:%s work_state_1:%s", self.latest_scrape.get('start_stop', 'null'), self.latest_scrape.get('work_state_1', 'null'))
                 if self.latest_scrape.get('start_stop', False) == 'Start' and self.latest_scrape.get('work_state_1', False).contains('Run'):
                     self.latest_scrape["run_state"] = "ON"
                 else:
                     self.latest_scrape["run_state"] = "OFF"
             else:
-                logging.info(f"DEBUG: Couldn't read start_stop so run_state is OFF")
+                logging.info("DEBUG: Couldn't read start_stop so run_state is OFF")
                 self.latest_scrape["run_state"] = "OFF"
         except Exception:
             pass
@@ -517,6 +516,6 @@ class SungrowClient():
         self.latest_scrape["daily_import_from_grid"] += ((self.latest_scrape["import_from_grid"] / 1000) * (self.inverter_config['scan_interval'] / 60 / 60) )
 
         scrape_end = datetime.now()
-        logging.info(f'Inverter: Successfully scraped in {(scrape_end - scrape_start).seconds}.{(scrape_end - scrape_start).microseconds} secs')
+        logging.info('Inverter: Successfully scraped in %s.%s secs', (scrape_end - scrape_start).seconds, (scrape_end - scrape_start).microseconds)
 
         return True

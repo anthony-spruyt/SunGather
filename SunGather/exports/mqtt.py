@@ -31,7 +31,7 @@ class export_mqtt(object):
         self.ha_sensors.pop() # Remove null value from list
 
         if not self.mqtt_config['host']:
-            logging.info(f"MQTT: Host config is required")
+            logging.info("MQTT: Host config is required")
             return False
         client_id = self.mqtt_config['client_id']
         self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id)
@@ -51,7 +51,7 @@ class export_mqtt(object):
         if self.mqtt_config['homeassistant']:
             for ha_sensor in config.get('ha_sensors'):
                 if not inverter.validateRegister(ha_sensor['register']):
-                    logging.error(f"MQTT: Configured to use {ha_sensor['register']} but not configured to scrape this register")
+                    logging.error("MQTT: Configured to use %s but not configured to scrape this register", ha_sensor['register'])
                     return False
                 else:
                     self.ha_sensors.append(ha_sensor)
@@ -60,15 +60,15 @@ class export_mqtt(object):
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
         if reason_code == 0:
-            logging.info(f"MQTT: Connected to {client._host}:{client._port}")
+            logging.info("MQTT: Connected to %s:%s", client._host, client._port)
         if reason_code > 0:
-            logging.warn(f"MQTT: FAILED to connect {client._host}:{client._port}")
+            logging.warning("MQTT: FAILED to connect %s:%s", client._host, client._port)
 
     def on_disconnect(self, client, userdata, flags, reason_code, properties):
         if reason_code == 0:
-            logging.info(f"MQTT: Server Disconnected")
+            logging.info("MQTT: Server Disconnected")
         if reason_code > 0:
-            logging.warn(f"MQTT: FAILED to disconnect {reason_code}")
+            logging.warning("MQTT: FAILED to disconnect %s", reason_code)
 
 
     def on_publish(self, client, userdata, mid, reason_codes, properties):
@@ -76,7 +76,7 @@ class export_mqtt(object):
             self.mqtt_queue.remove(mid)
         except Exception as err:
             pass
-        logging.debug(f"MQTT: Message {mid} Published")
+        logging.debug("MQTT: Message %s Published", mid)
 
     def cleanName(self, name):
         return name.lower().replace(' ','_')
@@ -84,9 +84,9 @@ class export_mqtt(object):
     def publish(self, inverter):
         try:
             if not self.mqtt_client.is_connected():
-                logging.warning(f'MQTT: Server Disconnected; {self.mqtt_queue.__len__()} messages queued, will automatically attempt to reconnect')
+                logging.warning('MQTT: Server Disconnected; %s messages queued, will automatically attempt to reconnect', self.mqtt_queue.__len__())
         except Exception as err:
-            logging.warning(f'MQTT: Server Error; Server not configured')
+            logging.warning('MQTT: Server Error; Server not configured')
             return False
         # qos=0 is set, so no acknowledgment is sent, rending this check useless
         #elif self.mqtt_queue.__len__() > 10:
@@ -99,7 +99,7 @@ class export_mqtt(object):
             for ha_sensor in self.ha_sensors:
                 config_msg = {}
                 if not (ha_sensor.get('name', False) and ha_sensor.get('sensor_type', False)):
-                    logging.error(f"HomeAssistance Discovery requires at minimum; name, sensor_type")
+                    logging.error("HomeAssistance Discovery requires at minimum; name, sensor_type")
                     break
 
                 # Set Defaults, these can be overridden below
@@ -123,14 +123,14 @@ class export_mqtt(object):
 
                 # <discovery_prefix>/<component>/<object_id>/config
                 ha_topic = f"homeassistant/{ha_sensor.get('sensor_type')}/{self.serial_number}_{self.cleanName(ha_sensor.get('name'))}/config"
-                logging.debug(f'MQTT: Topic; {ha_topic}, Message: {config_msg}')
+                logging.debug('MQTT: Topic; %s, Message: %s', ha_topic, config_msg)
                 self.mqtt_queue.append(self.mqtt_client.publish(ha_topic, json.dumps(config_msg), retain=True, qos=1).mid)
             self.ha_discovery_published = True
             logging.info("MQTT: Published Home Assistant Discovery messages")
 
         payload = json.dumps(inverter.inverter_config | inverter.client_config | inverter.latest_scrape).replace('"', '\"')
-        logging.debug(f"MQTT: Publishing Registers: {self.mqtt_config['topic']} : {payload}")
+        logging.debug("MQTT: Publishing Registers: %s : %s", self.mqtt_config['topic'], payload)
         self.mqtt_queue.append(self.mqtt_client.publish(self.mqtt_config['topic'], payload, qos=0).mid)
-        logging.info(f"MQTT: Registers Published")
+        logging.info("MQTT: Registers Published")
 
         return True

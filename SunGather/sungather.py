@@ -53,33 +53,33 @@ def main():
                 if int(arg) >= 0 and int(arg) <= 50:
                     loglevel = int(arg)
                 else:
-                    logging.error(f"Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
+                    logging.error("Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
                     sys.exit(2)
             else:
-                logging.error(f"Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
+                logging.error("Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
                 sys.exit(2)
         elif opt == '--runonce':
             runonce = True
 
-    logging.info(f'Starting SunGather {__version__}')
-    logging.info(f'Need Help? https://github.com/anthony-spruyt/SunGather')
+    logging.info('Starting SunGather %s', __version__)
+    logging.info('Need Help? https://github.com/anthony-spruyt/SunGather')
 
     try:
         configfile = yaml.safe_load(open(configfilename, encoding="utf-8"))
-        logging.info(f"Loaded config: {configfilename}")
+        logging.info("Loaded config: %s", configfilename)
     except Exception as err:
-        logging.error(f"Failed: Loading config: {configfilename} \n\t\t\t     {err}")
+        logging.error("Failed: Loading config: %s \n\t\t\t     %s", configfilename, err)
         sys.exit(1)
     if not configfile.get('inverter'):
-        logging.error(f"Failed Loading config, missing Inverter settings")
+        logging.error("Failed Loading config, missing Inverter settings")
         sys.exit(f"Failed Loading config, missing Inverter settings")
 
     try:
         registersfile = yaml.safe_load(open(registersfilename, encoding="utf-8"))
-        logging.info(f"Loaded registers: {registersfilename}")
-        logging.info(f"Registers file version: {registersfile.get('version','UNKNOWN')}")
+        logging.info("Loaded registers: %s", registersfilename)
+        logging.info("Registers file version: %s", registersfile.get('version','UNKNOWN'))
     except Exception as err:
-        logging.error(f"Failed: Loading registers: {registersfilename}  {err}")
+        logging.error("Failed: Loading registers: %s  %s", registersfilename, err)
         sys.exit(f"Failed: Loading registers: {registersfilename} {err}")
 
     config_inverter = {
@@ -111,22 +111,22 @@ def main():
             fh.setLevel(config_inverter['log_file'])
             logger.addHandler(fh)
         else:
-            logging.warning(f"log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
+            logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
 
-    logging.info(f"Logging to console set to: {logging.getLevelName(logger.handlers[0].level)}")
+    logging.info("Logging to console set to: %s", logging.getLevelName(logger.handlers[0].level))
     if logger.handlers.__len__() == 3:
-        logging.info(f"Logging to file set to: {logging.getLevelName(logger.handlers[2].level)}")
+        logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[2].level))
 
-    logging.debug(f'Inverter Config Loaded: {config_inverter}')
+    logging.debug('Inverter Config Loaded: %s', config_inverter)
 
     if config_inverter.get('host'):
         inverter = SungrowClient(config_inverter)
     else:
-        logging.error(f"Error: host option in config is required")
+        logging.error("Error: host option in config is required")
         sys.exit("Error: host option in config is required")
 
     if not inverter.checkConnection():
-        logging.error(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
+        logging.error("Error: Connection to inverter failed: %s:%s", config_inverter.get('host'), config_inverter.get('port'))
         sys.exit(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
 
     inverter.configure_registers(registersfile)
@@ -139,12 +139,14 @@ def main():
             try:
                 if export.get('enabled', False):
                     export_load = importlib.import_module("exports." + export.get('name'))
-                    logging.info(f"Loading Export: exports {export.get('name')}")
+                    logging.info("Loading Export: exports %s", export.get('name'))
                     exports.append(getattr(export_load, "export_" + export.get('name'))())
                     retval = exports[-1].configure(export, inverter)
             except Exception as err:
-                logging.error(f"Failed loading export: {err}" +
-                            f"\n\t\t\t     Please make sure {export.get('name')}.py exists in the exports folder")
+                logging.error(
+                    "Failed loading export: %s\n\t\t\t     Please make sure %s.py exists in the exports folder",
+                    err, export.get('name')
+                )
 
     scan_interval = config_inverter.get('scan_interval')
 
@@ -160,7 +162,7 @@ def main():
         try:
             success = inverter.scrape()
         except Exception as e:
-            logging.exception(f"Failed to scrape: {e}")
+            logging.exception("Failed to scrape: %s", e)
             success = False
 
         if(success):
@@ -169,21 +171,21 @@ def main():
             if not inverter.inverter_config['connection'] == "http": inverter.close()
         else:
             inverter.disconnect()
-            logging.warning(f"Data collection failed, skipped exporting data. Retying in {scan_interval} secs")
+            logging.warning("Data collection failed, skipped exporting data. Retying in %s secs", scan_interval)
 
         loop_end = time.perf_counter()
         process_time = round(loop_end - loop_start, 2)
-        logging.debug(f'Processing Time: {process_time} secs')
+        logging.debug('Processing Time: %s secs', process_time)
 
         if runonce:
             sys.exit(0)
 
         # Sleep until the next scan
         if scan_interval - process_time <= 1:
-            logging.warning(f"SunGather is taking {process_time} to process, which is longer than interval {scan_interval}, Please increase scan interval")
+            logging.warning("SunGather is taking %s to process, which is longer than interval %s, Please increase scan interval", process_time, scan_interval)
             time.sleep(process_time)
         else:
-            logging.info(f'Next scrape in {int(scan_interval - process_time)} secs')
+            logging.info('Next scrape in %s secs', int(scan_interval - process_time))
             time.sleep(scan_interval - process_time)
 
 def handle_sigterm(signum, frame):

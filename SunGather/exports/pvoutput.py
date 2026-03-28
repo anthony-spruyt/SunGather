@@ -69,14 +69,14 @@ class export_pvoutput(object):
 
         for parameter in config.get('parameters'):
             if not inverter.validateRegister(parameter['register']):
-                logging.error(f"PVOutput: Configured to use {parameter['register']} but not configured to scrape this register")
+                logging.error("PVOutput: Configured to use %s but not configured to scrape this register", parameter['register'])
                 return False
             self.pvoutput_parameters.append(parameter)
 
         try:
-            logging.debug(f"PVOutput: Get System ; {self.url_getsystem}, {str(self.headers)}, 'teams': '1'")
+            logging.debug("PVOutput: Get System ; %s, %s, 'teams': '1'", self.url_getsystem, str(self.headers))
             response = requests.post(url=self.url_getsystem,headers=self.headers, params={'teams': '1'}, timeout=3)
-            logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")
+            logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
 
             if response.status_code == 200:
                 system = response.text.split(';')[0]
@@ -91,36 +91,36 @@ class export_pvoutput(object):
                         team_member = True
                         break
             else:
-                logging.error(f"PVOutput: System Status Failed; {str(response.status_code)} Message; {str(response.content)}")
+                logging.error("PVOutput: System Status Failed; %s Message; %s", response.status_code, response.content)
 
         except Exception as err:
-            logging.error(f"PVOutput: Failed to configure")
-            logging.debug(f"{err}")
+            logging.error("PVOutput: Failed to configure")
+            logging.debug("%s", err)
             return False
 
         try:
             if not team_member and self.pvoutput_config['join_team']:
-                logging.debug(f"PVOutput: Join Team; {self.url_jointeam}, {str(self.headers)}, 'tid': '{self.tid}'")
+                logging.debug("PVOutput: Join Team; %s, %s, 'tid': '%s'", self.url_jointeam, str(self.headers), self.tid)
                 response = requests.post(url=self.url_jointeam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")
+                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
             elif team_member and not self.pvoutput_config['join_team']:
-                logging.debug(f"PVOutput: Leave Team; {self.url_leaveteam}, {str(self.headers)}, 'tid': '{self.tid}'")
+                logging.debug("PVOutput: Leave Team; %s, %s, 'tid': '%s'", self.url_leaveteam, str(self.headers), self.tid)
                 response = requests.post(url=self.url_leaveteam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug(f"PVOutput: Response; {str(response.status_code)} Message; {str(response.content)}")
+                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
         except Exception as err:
             pass
 
-        logging.info(f"PVOutput: Configured export to {invertername} every {self.status_interval} minutes")
+        logging.info("PVOutput: Configured export to %s every %s minutes", invertername, self.status_interval)
         return True
 
     def collect_data(self, inverter):
         # Check all required registers have been returned by the inverter
         if not inverter.validateLatestScrape('timestamp'):
-                logging.error(f"PVOutput: Skipped collecting data, Timestamp missing from last scrape")
+                logging.error("PVOutput: Skipped collecting data, Timestamp missing from last scrape")
                 return False
         for parameter in self.pvoutput_parameters:
             if not inverter.validateLatestScrape(parameter['register']):
-                logging.error(f"PVOutput: Skipped collecting data,  {parameter['register']} missing from last scrape")
+                logging.error("PVOutput: Skipped collecting data,  %s missing from last scrape", parameter['register'])
                 return False
 
         # Add new data to old data and increase count of data points
@@ -146,7 +146,7 @@ class export_pvoutput(object):
         else:
             self.collected_data['count'] = 1
 
-        logging.debug(f'PVOutput: Data Logged: {self.collected_data}')
+        logging.debug('PVOutput: Data Logged: %s', self.collected_data)
 
         return True
 
@@ -178,17 +178,17 @@ class export_pvoutput(object):
                 if any_data:
                     self.batch_data.append(data_point)
                 else:
-                    logging.warning(f"PVOutput: No data collected in last {(self.status_interval * 60)} minutes")
+                    logging.warning("PVOutput: No data collected in last %s minutes", (self.status_interval * 60))
 
                 # Max upload is 30, if over 30 then remove the oldest one
                 if self.batch_data.__len__() > 30:
-                    logging.warning(f"PVOutput: Over 30 data points scheduled to upload. max is 30 so removing oldest data point")
+                    logging.warning("PVOutput: Over 30 data points scheduled to upload. max is 30 so removing oldest data point")
                     self.batch_data.pop(0)
 
                 self.batch_count +=1
                 if self.batch_count >= self.pvoutput_config['batch_points']:
                     if not self.batch_data.__len__() > 0:
-                        logging.warning(f"PVOutput: No data collected in last {((self.status_interval * 60) * self.batch_count)} minutes, Skipping upload")
+                        logging.warning("PVOutput: No data collected in last %s minutes, Skipping upload", ((self.status_interval * 60) * self.batch_count))
                         return False
                     elif self.batch_data.__len__() >= 1:
                         payload_data = None
@@ -205,23 +205,23 @@ class export_pvoutput(object):
                         payload['c1'] = self.pvoutput_config['cumulative_flag']
 
                     try:
-                        logging.debug("PVOutput: Request; " + self.url_addbatchstatus + ", " + str(self.headers) + " : " + str(payload))
+                        logging.debug("PVOutput: Request; %s, %s : %s", self.url_addbatchstatus, str(self.headers), str(payload))
                         response = requests.post(url=self.url_addbatchstatus, headers=self.headers, params=payload, timeout=3)
                         self.batch_count = 0
 
                         if response.status_code != requests.codes.ok:
-                            logging.error(f"PVOutput: Upload Failed; {str(response.status_code)} Message; {str(response.text)}")
-                            logging.error("PVOutput: Request; " + self.url_addbatchstatus + ", " + str(self.headers) + " : " + str(payload))
+                            logging.error("PVOutput: Upload Failed; %s Message; %s", response.status_code, response.text)
+                            logging.error("PVOutput: Request; %s, %s : %s", self.url_addbatchstatus, str(self.headers), str(payload))
                         else:
                             self.batch_data = []
                             self.last_publish = time.time()
                             logging.info("PVOutput: Data uploaded")
                     except Exception as err:
-                        logging.error(f"PVOutput: Failed to Upload")
-                        logging.debug(f"{err}")
+                        logging.error("PVOutput: Failed to Upload")
+                        logging.debug("%s", err)
                 else:
                     logging.info("PVOutput: Data added to next batch upload")
             else:
-                logging.info(f"PVOutput: Data logged, next upload in {int(((self.status_interval) * 60) - (time.time() - self.last_publish))} secs")
+                logging.info("PVOutput: Data logged, next upload in %s secs", int(((self.status_interval) * 60) - (time.time() - self.last_publish)))
 
             self.last_run = time.time()

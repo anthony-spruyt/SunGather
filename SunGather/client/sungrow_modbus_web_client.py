@@ -49,14 +49,12 @@ class SungrowModbusWebClient(ModbusTcpClient):
             )
         except Exception as err:
             logging.debug(
-                f"Connection to websocket server failed: "
-                f"{self.ws_endpoint}, Message: {err}"
+                "Connection to websocket server failed: %s, Message: %s",
+                self.ws_endpoint, err
             )
             return None
 
-        logging.debug(
-            "Connection to websocket server established: " + self.ws_endpoint
-        )
+        logging.debug("Connection to websocket server established: %s", self.ws_endpoint)
 
         self.ws_socket.send(json.dumps({
             "lang": "en_us", "token": self.ws_token, "service": "connect"
@@ -77,7 +75,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
 
         if payload_dict['result_msg'] == 'success':
             self.ws_token = payload_dict['result_data']['token']
-            logging.info("Token Retrieved: " + self.ws_token)
+            logging.info("Token Retrieved: %s", self.ws_token)
         else:
             self.ws_token = ""
             raise ConnectionException(
@@ -96,12 +94,9 @@ class SungrowModbusWebClient(ModbusTcpClient):
         if payload_dict['result_msg'] == 'success':
             self.dev_type = payload_dict['result_data']['list'][0]['dev_type']
             self.dev_code = payload_dict['result_data']['list'][0]['dev_code']
-            logging.debug(
-                "Retrieved: dev_type = " + str(self.dev_type) +
-                ", dev_code = " + str(self.dev_code)
-            )
+            logging.debug("Retrieved: dev_type = %s, dev_code = %s", self.dev_type, self.dev_code)
         else:
-            logging.warning("Connection Failed", payload_dict['result_msg'])
+            logging.warning("Connection Failed: %s", payload_dict['result_msg'])
             raise ConnectionException(self.__str__())
 
         return self.ws_socket is not None
@@ -130,10 +125,8 @@ class SungrowModbusWebClient(ModbusTcpClient):
         self.payload_modbus = ""
 
         logging.debug(
-            "param_type: " + str(param_type) +
-            ", start_address: " + str(address) +
-            ", count: " + str(count) +
-            ", dev_id: " + str(dev_id)
+            "param_type: %s, start_address: %s, count: %s, dev_id: %s",
+            param_type, address, count, dev_id
         )
         url = (
             f'http://{str(self.dev_host)}/device/getParam?'
@@ -143,27 +136,24 @@ class SungrowModbusWebClient(ModbusTcpClient):
             f'&param_type={str(param_type)}&token={self.ws_token}'
             f'&lang=en_us&time123456={str(int(time.time()))}'
         )
-        logging.debug(f'Calling: {url}')
+        logging.debug('Calling: %s', url)
         try:
             r = requests.get(url, timeout=self.timeout)
         except Exception as err:
             raise ConnectionException(f"HTTP Request failed: {str(err)}")
 
-        logging.debug("HTTP Status code " + str(r.status_code))
+        logging.debug("HTTP Status code %s", r.status_code)
         if str(r.status_code) == '200':
             self.payload_dict = json.loads(str(r.text))
-            logging.debug(
-                "Payload Status code " +
-                str(self.payload_dict.get('result_code', "N/A"))
-            )
-            logging.debug("Payload Dict: " + str(self.payload_dict))
+            logging.debug("Payload Status code %s", self.payload_dict.get('result_code', "N/A"))
+            logging.debug("Payload Dict: %s", self.payload_dict)
             if self.payload_dict.get('result_code', 0) == 1:
                 modbus_data = (
                     self.payload_dict['result_data']['param_value'].split(' ')
                 )
                 modbus_data.pop()
                 data_len = int(len(modbus_data))
-                logging.debug("Data length: " + str(data_len))
+                logging.debug("Data length: %s", data_len)
                 self.payload_modbus = [
                     '00', format(request[1], '02x'),
                     '00', '00', '00', format((data_len + 3), '02x'),
@@ -206,7 +196,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
         counter = 0
         time_ = time.time()
 
-        logging.debug("Modbus payload: " + str(self.payload_modbus))
+        logging.debug("Modbus payload: %s", self.payload_modbus)
 
         for temp_byte in self.payload_modbus:
             if temp_byte:
@@ -219,10 +209,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
 
         del self.payload_modbus[0:counter]
 
-        logging.debug(
-            "Requested Size: " + str(size) +
-            ", Returned Size: " + str(counter)
-        )
+        logging.debug("Requested Size: %s, Returned Size: %s", size, counter)
 
         if int(counter) < int(size):
             raise ConnectionException(
