@@ -109,7 +109,7 @@ class export_pvoutput(object):
                     response.status_code, response.content
                 )
 
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             logging.error("PVOutput: Failed to configure")
             logging.debug("%s", err)
             return False
@@ -195,109 +195,132 @@ class export_pvoutput(object):
 
         return True
 
-    def publish(self, inverter):
-        if self.collect_data(inverter):
-            # Process data points every status_interval
-            if (time.time() - self.last_publish) >= (self.status_interval * 60):
-                any_data = False
-                if inverter.validateLatestScrape('timestamp'):
-                    now = datetime.datetime.strptime(
-                        inverter.getRegisterValue('timestamp'), "%Y-%m-%d %H:%M:%S"
+    def _build_data_point(self, inverter):
+        """Build a single PVOutput data point string from collected_data.
+
+        Returns the data point string if any v-field data was found, or None otherwise.
+        Also resets collected_data when a data point is built.
+        """
+        if not inverter.validateLatestScrape('timestamp'):
+            return None
+
+        now = datetime.datetime.strptime(
+            inverter.getRegisterValue('timestamp'), "%Y-%m-%d %H:%M:%S"
+        )
+        data_point = str(now.strftime("%Y%m%d")) + "," + str(now.strftime("%H:%M"))
+        any_data = False
+        cum_flag = self.pvoutput_config['cumulative_flag']
+
+        for x in range(1, 13):
+            field = 'v' + str(x)
+            if self.collected_data.get(field):
+                if x == 1 and cum_flag in (1, 2):
+                    value = int(self.collected_data[field])
+                elif x == 3 and cum_flag in (1, 3):
+                    value = int(self.collected_data[field])
+                elif x in (6, 7):    # Round to 1 decimal place
+                    value = round(
+                        self.collected_data[field] / self.collected_data['count'], 1
                     )
-                    data_point = str(now.strftime("%Y%m%d")) + "," + str(now.strftime("%H:%M"))
-                    for x in range(1, 13):
-                        field = 'v' + str(x)
-                        if self.collected_data.get(field):
-                            cum_flag = self.pvoutput_config['cumulative_flag']
-                            if x == 1 and cum_flag in (1, 2):
-                                value = int(self.collected_data[field])
-                            elif x == 3 and cum_flag in (1, 3):
-                                value = int(self.collected_data[field])
-                            elif x in (6, 7):    # Round to 1 decimal place
-                                value = round(
-                                    self.collected_data[field] / self.collected_data['count'], 1
-                                )
-                            else:                     # Return INT, decimals cause upload errors
-                                value = int(
-                                    self.collected_data[field] / self.collected_data['count']
-                                )
-                            data_point = data_point + "," + str(value)
-                            any_data = True
-                        else:
-                            data_point = data_point + ","
-                    self.collected_data = {}
-
-                if any_data:
-                    self.batch_data.append(data_point)
-                else:
-                    logging.warning(
-                        "PVOutput: No data collected in last %s minutes",
-                        (self.status_interval * 60)
+                else:                     # Return INT, decimals cause upload errors
+                    value = int(
+                        self.collected_data[field] / self.collected_data['count']
                     )
-
-                # Max upload is 30, if over 30 then remove the oldest one
-                if len(self.batch_data) > 30:
-                    logging.warning(
-                        "PVOutput: Over 30 data points scheduled to upload. "
-                        "max is 30 so removing oldest data point"
-                    )
-                    self.batch_data.pop(0)
-
-                self.batch_count +=1
-                if self.batch_count >= self.pvoutput_config['batch_points']:
-                    if not len(self.batch_data) > 0:
-                        logging.warning(
-                            "PVOutput: No data collected in last %s minutes, Skipping upload",
-                            (self.status_interval * 60) * self.batch_count
-                        )
-                        return False
-                    if len(self.batch_data) >= 1:
-                        payload_data = None
-                        for data in self.batch_data:
-                            if payload_data:
-                                payload_data = payload_data + ";" + data
-                            else:
-                                payload_data = data
-
-                    payload = {}
-                    payload['data'] = payload_data
-
-                    if self.pvoutput_config['cumulative_flag'] > 0:
-                        payload['c1'] = self.pvoutput_config['cumulative_flag']
-
-                    try:
-                        logging.debug(
-                            "PVOutput: Request; %s, %s : %s",
-                            self.url_addbatchstatus, str(self.headers), str(payload)
-                        )
-                        response = requests.post(
-                            url=self.url_addbatchstatus, headers=self.headers,
-                            params=payload, timeout=3
-                        )
-                        self.batch_count = 0
-
-                        if response.status_code != requests.codes.ok:
-                            logging.error(
-                                "PVOutput: Upload Failed; %s Message; %s",
-                                response.status_code, response.text
-                            )
-                            logging.error(
-                                "PVOutput: Request; %s, %s : %s",
-                                self.url_addbatchstatus, str(self.headers), str(payload)
-                            )
-                        else:
-                            self.batch_data = []
-                            self.last_publish = time.time()
-                            logging.info("PVOutput: Data uploaded")
-                    except Exception as err:
-                        logging.error("PVOutput: Failed to Upload")
-                        logging.debug("%s", err)
-                else:
-                    logging.info("PVOutput: Data added to next batch upload")
+                data_point = data_point + "," + str(value)
+                any_data = True
             else:
-                logging.info(
-                    "PVOutput: Data logged, next upload in %s secs",
-                    int((self.status_interval * 60) - (time.time() - self.last_publish))
-                )
+                data_point = data_point + ","
 
+        self.collected_data = {}
+
+        if any_data:
+            return data_point
+        return None
+
+    def _upload_batch(self):
+        """Upload accumulated batch data to pvoutput.org.
+
+        Returns True on successful upload, False otherwise.
+        """
+        payload_data = ";".join(self.batch_data)
+        payload = {'data': payload_data}
+
+        if self.pvoutput_config['cumulative_flag'] > 0:
+            payload['c1'] = self.pvoutput_config['cumulative_flag']
+
+        try:
+            logging.debug(
+                "PVOutput: Request; %s, %s : %s",
+                self.url_addbatchstatus, str(self.headers), str(payload)
+            )
+            response = requests.post(
+                url=self.url_addbatchstatus, headers=self.headers,
+                params=payload, timeout=3
+            )
+            self.batch_count = 0
+
+            if response.status_code != 200:
+                logging.error(
+                    "PVOutput: Upload Failed; %s Message; %s",
+                    response.status_code, response.text
+                )
+                logging.error(
+                    "PVOutput: Request; %s, %s : %s",
+                    self.url_addbatchstatus, str(self.headers), str(payload)
+                )
+                return False
+
+            self.batch_data = []
+            self.last_publish = time.time()
+            logging.info("PVOutput: Data uploaded")
+            return True
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            logging.error("PVOutput: Failed to Upload")
+            logging.debug("%s", err)
+            return False
+
+    def publish(self, inverter):
+        if not self.collect_data(inverter):
+            return False
+
+        # Process data points every status_interval
+        if (time.time() - self.last_publish) < (self.status_interval * 60):
+            logging.info(
+                "PVOutput: Data logged, next upload in %s secs",
+                int((self.status_interval * 60) - (time.time() - self.last_publish))
+            )
             self.last_run = time.time()
+            return True
+
+        data_point = self._build_data_point(inverter)
+        if data_point:
+            self.batch_data.append(data_point)
+        else:
+            logging.warning(
+                "PVOutput: No data collected in last %s minutes",
+                (self.status_interval * 60)
+            )
+
+        # Max upload is 30, if over 30 then remove the oldest one
+        if len(self.batch_data) > 30:
+            logging.warning(
+                "PVOutput: Over 30 data points scheduled to upload. "
+                "max is 30 so removing oldest data point"
+            )
+            self.batch_data.pop(0)
+
+        self.batch_count += 1
+        if self.batch_count >= self.pvoutput_config['batch_points']:
+            if not self.batch_data:
+                logging.warning(
+                    "PVOutput: No data collected in last %s minutes, Skipping upload",
+                    (self.status_interval * 60) * self.batch_count
+                )
+                return False
+            result = self._upload_batch()
+            self.last_run = time.time()
+            return result
+
+        logging.info("PVOutput: Data added to next batch upload")
+        self.last_run = time.time()
+        return True
