@@ -82,14 +82,28 @@ class export_webserver(object):
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == '/health':
+            threshold = export_webserver.scan_interval * 3
             if export_webserver.last_successful_scrape is None:
-                self.send_response(200)
-            elif (datetime.now() - export_webserver.last_successful_scrape
-                  ).total_seconds() < export_webserver.scan_interval * 3:
-                self.send_response(200)
+                status = 200
+                body = {"status": "ok", "last_scrape_age_seconds": None,
+                        "threshold_seconds": threshold}
             else:
-                self.send_response(503)
+                age = (datetime.now() - export_webserver.last_successful_scrape
+                       ).total_seconds()
+                if age < threshold:
+                    status = 200
+                    body = {"status": "ok",
+                            "last_scrape_age_seconds": round(age, 1),
+                            "threshold_seconds": threshold}
+                else:
+                    status = 503
+                    body = {"status": "stale",
+                            "last_scrape_age_seconds": round(age, 1),
+                            "threshold_seconds": threshold}
+            self.send_response(status)
+            self.send_header("Content-type", "application/json")
             self.end_headers()
+            self.wfile.write(bytes(json.dumps(body), "utf-8"))
             return
         if self.path.startswith('/metrics'):
             self.send_response(200)
