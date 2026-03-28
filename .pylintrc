@@ -16,7 +16,16 @@ disable =
     # Attributes set in configure() not __init__ is the upstream pattern
     attribute-defined-outside-init,
     # Upstream uses object inheritance
-    useless-object-inheritance
+    useless-object-inheritance,
+    # Tests legitimately access protected members; MQTT callbacks receive them
+    protected-access,
+    # Test helper duplication across files is acceptable
+    duplicate-code
 
 [FORMAT]
 max-line-length = 100
+
+[DESIGN]
+max-args = 6
+max-positional-arguments = 6
+max-instance-attributes = 15
