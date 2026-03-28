@@ -38,25 +38,23 @@ def _inverter_reachable():
 @pytest.mark.skipif(not _docker_available(), reason='Docker not available')
 @pytest.mark.skipif(not _inverter_reachable(), reason=f'Inverter not reachable at {INVERTER_HOST}:{INVERTER_PORT}')
 class TestContainerSmoke:
-    """Smoke test: build prod image, run --runonce, assert clean exit."""
+    """Smoke test: build prod image, run --runonce, assert clean exit with data."""
 
     @classmethod
     def setup_class(cls):
-        """Build the production Docker image once for all tests in this class."""
-        result = subprocess.run(
+        """Build the production Docker image and run one scrape cycle."""
+        build = subprocess.run(
             ['docker', 'build', '-t', IMAGE_TAG, '.'],
             capture_output=True,
             text=True,
             cwd=REPO_ROOT,
             timeout=300,
         )
-        assert result.returncode == 0, (
-            f"Docker build failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        assert build.returncode == 0, (
+            f"Docker build failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
         )
 
-    def test_runonce_exits_cleanly(self):
-        """Container should complete one scrape cycle and exit 0."""
-        result = subprocess.run(
+        cls.result = subprocess.run(
             [
                 'docker', 'run', '--rm', '--network', 'host',
                 '-v', f'{CONFIG_PATH}:/config/config.yaml:ro',
@@ -68,26 +66,23 @@ class TestContainerSmoke:
             text=True,
             timeout=60,
         )
-        assert result.returncode == 0, (
-            f"Container exited with code {result.returncode}:\n"
-            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        cls.combined_output = cls.result.stdout + cls.result.stderr
+
+    def test_exits_cleanly(self):
+        """Container should exit 0 after one scrape cycle."""
+        assert self.result.returncode == 0, (
+            f"Container exited with code {self.result.returncode}:\n"
+            f"{self.combined_output}"
         )
 
-    def test_no_tracebacks_in_output(self):
+    def test_no_tracebacks(self):
         """Container output should not contain Python tracebacks."""
-        result = subprocess.run(
-            [
-                'docker', 'run', '--rm', '--network', 'host',
-                '-v', f'{CONFIG_PATH}:/config/config.yaml:ro',
-                IMAGE_TAG,
-                '/opt/virtualenv/bin/python', 'sungather.py',
-                '-c', '/config/config.yaml', '--runonce',
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
+        assert 'Traceback' not in self.combined_output, (
+            f"Traceback found in container output:\n{self.combined_output}"
         )
-        combined = result.stdout + result.stderr
-        assert 'Traceback' not in combined, (
-            f"Traceback found in container output:\n{combined}"
+
+    def test_scrape_succeeded(self):
+        """Container should have scraped registers and logged them to console."""
+        assert 'Logged' in self.combined_output and 'registers to Console' in self.combined_output, (
+            f"No evidence of successful scrape in output:\n{self.combined_output}"
         )
