@@ -74,6 +74,24 @@ class TestSungrowClientConnect:
         assert 'host' not in kwargs
         assert result is True
 
+    @patch('client.sungrow_client.SungrowModbusWebClient')
+    def test_connect_http_passes_host_as_keyword_and_overrides_port(self, MockClient):
+        """SungrowModbusWebClient must receive host as keyword arg, port=8082."""
+        mock_instance = MagicMock()
+        mock_instance.connect.return_value = True
+        MockClient.return_value = mock_instance
+
+        config = make_config(connection='http')
+        client = SungrowClient(config)
+        result = client.connect()
+
+        MockClient.assert_called_once()
+        args, kwargs = MockClient.call_args
+        assert args == ()
+        assert kwargs['host'] == '192.168.1.1'
+        assert kwargs['port'] == 8082
+        assert result is True
+
 
 class TestSungrowClientCheckConnection:
     def test_check_connection_uses_connected_property(self):
