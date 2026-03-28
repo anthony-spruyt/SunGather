@@ -1,0 +1,22 @@
+[MAIN]
+# SunGather project pylint configuration
+
+[MESSAGES CONTROL]
+disable =
+    # Framework-imposed names (BaseHTTPRequestHandler.do_GET, do_POST)
+    invalid-name,
+    # Project uses non-standard import paths (version, exports.webserver)
+    import-error,
+    # Upstream code style — not worth churning docstrings on forked code
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    # Test classes with single test methods are fine
+    too-few-public-methods,
+    # Attributes set in configure() not __init__ is the upstream pattern
+    attribute-defined-outside-init,
+    # Upstream uses object inheritance
+    useless-object-inheritance
+
+[FORMAT]
+max-line-length = 100
