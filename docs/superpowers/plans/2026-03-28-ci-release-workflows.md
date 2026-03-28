@@ -83,9 +83,11 @@ RUN python3 -m venv /opt/virtualenv \
 COPY requirements.txt ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir -r requirements.txt
 
-# Test stage: includes pytest for CI
+# Test stage: includes pytest and source code for CI
 FROM builder AS test
 
+WORKDIR /opt/sungather
+COPY SunGather/ ./SunGather/
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
 
 # Production stage
@@ -158,11 +160,11 @@ jobs:
           load: true
           tags: "sungather:test"
           cache-from: "type=gha"
-          cache-to: "type=gha,mode=max"
 
       - name: "Run tests"
         run: |
           docker run --rm \
+            -w /opt/sungather \
             -v "${{ github.workspace }}/tests:/opt/sungather/tests:ro" \
             sungather:test \
             /opt/virtualenv/bin/python -m pytest tests/ -v
@@ -255,6 +257,9 @@ permissions:
   packages: "write"
   id-token: "write"
   attestations: "write"
+concurrency:
+  group: "release"
+  cancel-in-progress: false
 env:
   IMAGE: "ghcr.io/${{ github.repository_owner }}/sungather"
 jobs:
@@ -345,17 +350,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.resolve-version.outputs.tag }}
             type=raw,value=latest
 
-      - name: "Scan for vulnerabilities"
-        uses: "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1" # v0.29
-        with:
-          scan-type: "fs"
-          scanners: "vuln,secret,misconfig"
-          format: "table"
-          exit-code: "1"
-          severity: "CRITICAL,HIGH"
-          ignore-unfixed: true
-          trivyignores: ".trivyignore.yaml"
-
       - name: "Build and push"
         id: "push"
         uses: "docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294" # v7
@@ -384,38 +378,39 @@ jobs:
           git tag "$TAG"
           git push origin "$TAG"
 
-      - name: "Create GitHub Release"
+      - name: "Generate release notes"
+        id: "notes"
         env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           TAG: "${{ needs.resolve-version.outputs.tag }}"
           VERSION: "${{ needs.resolve-version.outputs.version }}"
           DIGEST: "${{ steps.push.outputs.digest }}"
           IMAGE: "${{ env.IMAGE }}"
           OWNER: "${{ github.repository_owner }}"
         run: |
-          RELEASE_NOTES=$(cat <<NOTES_EOF
-          ## Container Image
+          {
+            echo 'RELEASE_NOTES<<NOTES_EOF'
+            printf '## Container Image\n\n'
+            printf '```\n'
+            printf '%s:%s\n' "${IMAGE}" "${VERSION}"
+            printf '```\n\n'
+            # shellcheck disable=SC2016
+            printf '**Digest:** `%s`\n\n' "${DIGEST}"
+            printf '**Platforms:** linux/amd64, linux/arm64, linux/arm/v7\n\n'
+            printf '## Verify Provenance\n\n'
+            printf '```bash\n'
+            printf 'gh attestation verify oci://%s:%s --owner %s\n' "${IMAGE}" "${VERSION}" "${OWNER}"
+            printf '```\n'
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_ENV"
 
-          \`\`\`
-          ${IMAGE}:${VERSION}
-          \`\`\`
-
-          **Digest:** \`${DIGEST}\`
-
-          **Platforms:** linux/amd64, linux/arm64, linux/arm/v7
-
-          ## Verify Provenance
-
-          \`\`\`bash
-          gh attestation verify oci://${IMAGE}:${VERSION} --owner ${OWNER}
-          \`\`\`
-          NOTES_EOF
-          )
-
+      - name: "Create GitHub Release"
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          TAG: "${{ needs.resolve-version.outputs.tag }}"
+        run: |
           gh release create "$TAG" \
             --title "SunGather $TAG" \
-            --notes "$RELEASE_NOTES" \
-            --generate-notes
+            --notes "${RELEASE_NOTES}"
 ```
 
 - [ ] **Step 2: Verify workflow syntax**
@@ -426,11 +421,14 @@ review.
 Check:
 - `workflow_dispatch` with bump choice (patch/minor/major)
 - Version resolution uses `v*` tag prefix (matches existing tags: v0.5.3, v0.5.2, etc.)
+- Concurrency group prevents simultaneous release races
 - Multi-platform: amd64, arm64, arm/v7 (matches legacy docker-image.yml)
 - SBOM + provenance on push
 - Attestation via `actions/attest-build-provenance`
 - Git tag created and pushed
+- Release notes via `GITHUB_ENV` (no indentation issues), uses `--notes` only (no `--generate-notes`)
 - Release notes include image ref, digest, platforms, verify command
+- No filesystem Trivy scan (CI already covers this; daily scan covers image)
 - Permissions: contents:write, packages:write, id-token:write, attestations:write
 
 - [ ] **Step 3: Commit**
@@ -471,6 +469,7 @@ permissions:
   packages: "read"
 env:
   IMAGE: "ghcr.io/${{ github.repository_owner }}/sungather:latest"
+  IMAGE_NAME: "sungather"
 jobs:
   scan:
     name: "Scan container image"
@@ -488,10 +487,8 @@ jobs:
 
       - name: "Check image exists"
         id: "check"
-        env:
-          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
-          if docker pull "$IMAGE" > /dev/null 2>&1; then
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Image $IMAGE not found in registry, skipping scan"
@@ -506,85 +503,94 @@ jobs:
           scanners: "vuln,secret,misconfig"
           format: "json"
           output: "trivy-results.json"
+          exit-code: "0"
           severity: "CRITICAL,HIGH,MEDIUM"
-          ignore-unfixed: true
-          trivyignores: ".trivyignore.yaml"
-
-      - name: "Generate table output"
-        if: "steps.check.outputs.exists == 'true'"
-        uses: "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1" # v0.29
-        with:
-          image-ref: "${{ env.IMAGE }}"
-          scanners: "vuln,secret,misconfig"
-          format: "table"
-          severity: "CRITICAL,HIGH,MEDIUM"
-          ignore-unfixed: true
+          ignore-unfixed: false
           trivyignores: ".trivyignore.yaml"
 
       - name: "Process results and manage issue"
         if: "steps.check.outputs.exists == 'true'"
         env:
           GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          SCAN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         run: |
-          # Count vulnerabilities by severity
-          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-results.json 2>/dev/null || echo 0)
-          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-results.json 2>/dev/null || echo 0)
-          MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length' trivy-results.json 2>/dev/null || echo 0)
+          # Guard: check results file exists
+          if [ ! -f trivy-results.json ]; then
+            echo "::error::trivy-results.json not found"
+            exit 1
+          fi
+
+          # Deduplicate vulnerabilities by CVE ID and count by severity
+          VULNS=$(jq '[.Results[]?.Vulnerabilities[]?] | unique_by(.VulnerabilityID)' trivy-results.json)
+          CRITICAL=$(echo "$VULNS" | jq '[.[] | select(.Severity == "CRITICAL")] | length')
+          HIGH=$(echo "$VULNS" | jq '[.[] | select(.Severity == "HIGH")] | length')
+          MEDIUM=$(echo "$VULNS" | jq '[.[] | select(.Severity == "MEDIUM")] | length')
           TOTAL=$((CRITICAL + HIGH + MEDIUM))
 
           # Ensure labels exist
-          gh label create "security" --color "B60205" --description "Security vulnerability" --force 2>/dev/null || true
-          gh label create "trivy" --color "1D76DB" --description "Trivy scan finding" --force 2>/dev/null || true
-          gh label create "critical" --color "B60205" --description "Critical severity" --force 2>/dev/null || true
-          gh label create "high" --color "D93F0B" --description "High severity" --force 2>/dev/null || true
-          gh label create "medium" --color "FBCA04" --description "Medium severity" --force 2>/dev/null || true
+          gh label create "security" --color "d73a4a" --description "Security vulnerability" --force 2>/dev/null || true
+          gh label create "trivy" --color "0052cc" --description "Trivy scan finding" --force 2>/dev/null || true
+          gh label create "critical" --color "b60205" --description "Critical severity" --force 2>/dev/null || true
+          gh label create "high" --color "d93f0b" --description "High severity" --force 2>/dev/null || true
+          gh label create "medium" --color "fbca04" --description "Medium severity" --force 2>/dev/null || true
 
-          # Find existing issue
-          ISSUE_NUMBER=$(gh issue list --label "trivy" --state open --json number --jq '.[0].number' 2>/dev/null || echo "")
+          # Find existing issue by title prefix (more precise than label match)
+          ISSUE_PREFIX="[Trivy] ${IMAGE_NAME}:"
+          ISSUE_NUMBER=$(gh issue list --state open --json number,title \
+            | jq -r --arg prefix "$ISSUE_PREFIX" '.[] | select(.title | startswith($prefix)) | .number' \
+            | head -1)
 
           if [ "$TOTAL" -eq 0 ]; then
             echo "::notice::No vulnerabilities found"
-            # Close existing issue if open
             if [ -n "$ISSUE_NUMBER" ]; then
-              gh issue close "$ISSUE_NUMBER" --comment "All vulnerabilities resolved. Scan: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              gh issue close "$ISSUE_NUMBER" \
+                --comment "All vulnerabilities resolved as of $(date -u +'%Y-%m-%d %H:%M UTC')."
             fi
             exit 0
           fi
 
-          # Build issue title
-          TITLE="[Trivy] sungather:latest"
-          SEVERITY_PARTS=""
-          [ "$CRITICAL" -gt 0 ] && SEVERITY_PARTS="${SEVERITY_PARTS} ${CRITICAL} critical"
-          [ "$HIGH" -gt 0 ] && SEVERITY_PARTS="${SEVERITY_PARTS} ${HIGH} high"
-          [ "$MEDIUM" -gt 0 ] && SEVERITY_PARTS="${SEVERITY_PARTS} ${MEDIUM} medium"
-          TITLE="${TITLE} -${SEVERITY_PARTS}"
+          # Build issue title with counts
+          TITLE="[Trivy] ${IMAGE_NAME}:"
+          [ "$CRITICAL" -gt 0 ] && TITLE="${TITLE} ${CRITICAL} critical,"
+          [ "$HIGH" -gt 0 ] && TITLE="${TITLE} ${HIGH} high,"
+          [ "$MEDIUM" -gt 0 ] && TITLE="${TITLE} ${MEDIUM} medium,"
+          TITLE="${TITLE%,} found"
 
-          # Build vulnerability table for CRITICAL and HIGH
-          TABLE="| CVE ID | Severity | Package | Installed | Fixed |\n|--------|----------|---------|-----------|-------|\n"
-          TABLE+=$(jq -r '
-            [.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH")]
-            | sort_by(.Severity) | reverse[]
-            | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "N/A") |"
-          ' trivy-results.json 2>/dev/null || echo "")
+          # Build vulnerability table for CRITICAL and HIGH (deduplicated)
+          TABLE=$(echo "$VULNS" | jq -r '
+            [.[] | select(.Severity == "CRITICAL" or .Severity == "HIGH")]
+            | .[]
+            | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "unfixed") |"
+          ')
 
           # Build issue body
-          BODY=$(cat <<BODY_EOF
-          ## Trivy Vulnerability Scan Results
+          BODY="## Trivy Vulnerability Scan Results"
+          BODY="${BODY}
 
-          **Image:** \`${{ env.IMAGE }}\`
-          **Scan date:** $(date -u +"%Y-%m-%d %H:%M UTC")
-          **Total:** ${TOTAL} (${CRITICAL} critical, ${HIGH} high, ${MEDIUM} medium)
+          **Image:** \`${IMAGE}\`
+          **Scan date:** $(date -u +'%Y-%m-%d %H:%M UTC')
+          **Total:** ${TOTAL} (${CRITICAL} critical, ${HIGH} high, ${MEDIUM} medium)"
+
+          if [ "$((CRITICAL + HIGH))" -gt 0 ]; then
+            BODY="${BODY}
 
           ### Critical & High Vulnerabilities
 
-          $(echo -e "$TABLE")
+          | CVE | Severity | Package | Installed | Fixed |
+          |-----|----------|---------|-----------|-------|
+          ${TABLE}"
+          fi
 
-          ${MEDIUM:+> **${MEDIUM} medium severity** vulnerabilities omitted. See [full scan results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).}
+          if [ "$MEDIUM" -gt 0 ]; then
+            BODY="${BODY}
+
+          > **${MEDIUM} medium severity** vulnerabilities. See [full scan results](${SCAN_URL}) for details."
+          fi
+
+          BODY="${BODY}
 
           ---
-          *Auto-generated by [Trivy scan](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*
-          BODY_EOF
-          )
+          *Auto-generated by [Trivy scan](${SCAN_URL})*"
 
           # Determine labels
           LABELS="security,trivy"
@@ -593,10 +599,13 @@ jobs:
           [ "$MEDIUM" -gt 0 ] && LABELS="${LABELS},medium"
 
           if [ -n "$ISSUE_NUMBER" ]; then
-            gh issue edit "$ISSUE_NUMBER" --title "$TITLE" --body "$BODY"
-            # Reset labels (remove old severity, apply new)
-            gh issue edit "$ISSUE_NUMBER" --remove-label "critical,high,medium" 2>/dev/null || true
-            gh issue edit "$ISSUE_NUMBER" --add-label "$LABELS"
+            # Remove existing severity labels before applying new ones
+            EXISTING_SEVERITY=$(gh issue view "$ISSUE_NUMBER" --json labels \
+              -q '.labels[].name' | grep -E '^(critical|high|medium)$' | paste -sd, || echo "")
+            if [ -n "$EXISTING_SEVERITY" ]; then
+              gh issue edit "$ISSUE_NUMBER" --remove-label "$EXISTING_SEVERITY"
+            fi
+            gh issue edit "$ISSUE_NUMBER" --title "$TITLE" --body "$BODY" --add-label "$LABELS"
             echo "::notice::Updated issue #$ISSUE_NUMBER"
           else
             gh issue create --title "$TITLE" --body "$BODY" --label "$LABELS"
@@ -612,11 +621,14 @@ review.
 Check:
 - Daily schedule at 6 AM UTC (unchanged)
 - Scans the published `ghcr.io/.../sungather:latest` image
-- Checks image exists before scanning (handles first-run gracefully)
-- JSON output for issue management + table output for logs
+- Uses `docker manifest inspect` (fast, no full pull)
+- `ignore-unfixed: false` to report all known CVEs
+- CVEs deduplicated via `unique_by(.VulnerabilityID)`
+- Issue lookup by title prefix `[Trivy] sungather:` (not label)
+- Targeted label removal (only removes labels that exist)
 - Creates/updates GitHub issues with vulnerability details
 - Auto-closes issue when all vulns resolved
-- Labels: security, trivy, critical, high, medium
+- Labels: security (`d73a4a`), trivy (`0052cc`), critical, high, medium
 
 - [ ] **Step 3: Commit**
 
