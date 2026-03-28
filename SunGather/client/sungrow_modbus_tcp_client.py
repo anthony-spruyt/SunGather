@@ -15,30 +15,28 @@ class SungrowModbusTcpClient(ModbusTcpClient):
         self._fifo = bytes()
         self._priv_key = priv_key
         self._key = None
-        self._orig_recv = self.recv
-        self._orig_send = self.send
+        self._aes_ecb = None
+        self._use_cipher = False
         self._key_date = date.today()
 
     def _setup(self):
         self._key = bytes(a ^ b for (a, b) in zip(self._pub_key, self._priv_key))
         self._aes_ecb = AES.new(self._key, AES.MODE_ECB)
         self._key_date = date.today()
-        self.send = self._send_cipher
-        self.recv = self._recv_decipher
+        self._use_cipher = True
         self._fifo = bytes()
 
     def _restore(self):
         self._key = None
         self._aes_ecb = None
-        self.send = self._orig_send
-        self.recv = self._orig_recv
+        self._use_cipher = False
         self._fifo = bytes()
 
     def _getkey(self):
         if (self._key is None) or (self._key_date != date.today()):
             self._restore()
-            self._orig_send(GET_KEY)
-            self._key_packet = self._orig_recv(25)
+            super().send(GET_KEY)
+            self._key_packet = super().recv(25)
             self._pub_key = self._key_packet[9:]
             if (len(self._pub_key) == 16) and \
                (self._pub_key != NO_CRYPTO1) and \
@@ -63,6 +61,16 @@ class SungrowModbusTcpClient(ModbusTcpClient):
     def close(self):
         super().close()
         self._fifo = bytes()
+
+    def send(self, request, addr=None):
+        if self._use_cipher:
+            return self._send_cipher(request, addr)
+        return super().send(request, addr)
+
+    def recv(self, size):
+        if self._use_cipher:
+            return self._recv_decipher(size)
+        return super().recv(size)
 
     def _send_cipher(self, request, addr=None):
         self._fifo = bytes()
