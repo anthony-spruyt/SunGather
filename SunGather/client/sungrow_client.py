@@ -4,6 +4,7 @@ import logging
 import logging.handlers
 import time
 from datetime import datetime
+from typing import Any
 
 from pymodbus.client import ModbusTcpClient
 
@@ -35,8 +36,7 @@ class SungrowClient():
         }
         self.client = None
 
-        self.registers = [[]]
-        self.registers.pop() # Remove null value from list
+        self.registers: list[dict[str, Any]] = []
         self.registers_custom = [
             {'name': 'run_state', 'address': 'vr001'},
             {'name': 'timestamp', 'address': 'vr002'},
@@ -47,12 +47,11 @@ class SungrowClient():
             {'name': 'daily_import_from_grid', 'unit': 'kWh', 'address': 'vr007'},
         ]
 
-        self.register_ranges = [[]]
-        self.register_ranges.pop() # Remove null value from list
+        self.register_ranges: list[dict[str, Any]] = []
 
-        self.latest_scrape = {}
+        self.latest_scrape: dict[str, Any] = {}
 
-    def connect(self):
+    def connect(self) -> bool:
         if self.client:
             try:
                 self.client.connect()
@@ -88,7 +87,7 @@ class SungrowClient():
         time.sleep(3)
         return True
 
-    def checkConnection(self):
+    def checkConnection(self) -> bool:
         logging.debug("Checking Modbus Connection")
         if self.client:
             if self.client.connected:
@@ -114,7 +113,7 @@ class SungrowClient():
             pass
         self.client = None
 
-    def configure_registers(self,registersfile):
+    def configure_registers(self, registersfile) -> bool:
         # Check model so we can load only valid registers
         if self.inverter_config.get('model'):
             logging.info(
@@ -239,7 +238,7 @@ class SungrowClient():
                 self.register_ranges.append(register_range)
         return True
 
-    def load_registers(self, register_type, start, count=100):
+    def load_registers(self, register_type, start, count=100) -> bool:
         try:
             logging.debug('load_registers: %s, %s:%s', register_type, start, count)
             if register_type == "read":
@@ -338,7 +337,7 @@ class SungrowClient():
                     self.latest_scrape[register_name] = register_value
         return True
 
-    def validateRegister(self, check_register):
+    def validateRegister(self, check_register) -> bool:
         for register in self.registers:
             if check_register == register['name']:
                 return True
@@ -347,7 +346,7 @@ class SungrowClient():
                 return True
         return False
 
-    def getRegisterAddress(self, check_register):
+    def getRegisterAddress(self, check_register) -> int | str | None:
         for register in self.registers:
             if check_register == register['name']:
                 return register['address']
@@ -356,7 +355,7 @@ class SungrowClient():
                 return register['address']
         return '----'
 
-    def getRegisterUnit(self, check_register):
+    def getRegisterUnit(self, check_register) -> str:
         for register in self.registers:
             if check_register == register['name']:
                 return register.get('unit','')
@@ -365,30 +364,30 @@ class SungrowClient():
                 return register.get('unit','')
         return ''
 
-    def validateLatestScrape(self, check_register):
+    def validateLatestScrape(self, check_register) -> bool:
         for register, _value in self.latest_scrape.items():
             if check_register == register:
                 return True
         return False
 
-    def getRegisterValue(self, check_register):
+    def getRegisterValue(self, check_register) -> Any:
         for register, value in self.latest_scrape.items():
             if check_register == register:
                 return value
         return False
 
-    def getHost(self):
+    def getHost(self) -> str | None:
         return self.client_config['host']
 
-    def getInverterModel(self, clean=False):
+    def getInverterModel(self, clean=False) -> str:
         if clean:
             return self.inverter_config['model'].replace('.','').replace('-','')
         return self.inverter_config['model']
 
-    def getSerialNumber(self):
+    def getSerialNumber(self) -> str | None:
         return self.inverter_config['serial_number']
 
-    def scrape(self):
+    def scrape(self) -> bool:
         scrape_start = datetime.now()
 
         # Clear previous inverter values, persist some values
