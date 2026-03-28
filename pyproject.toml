@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+markers = [
+    "integration: container integration tests (require Docker and network access)",
+]
+addopts = "-m 'not integration'"
