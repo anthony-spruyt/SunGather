@@ -6,13 +6,12 @@ from urllib.parse import parse_qs, urlparse
 
 import json
 import logging
-import re
 import urllib
 
 
 def sanitize_for_log(value):
     """Remove control characters to prevent log injection."""
-    return re.sub(r'[\r\n]+', ' ', str(value))
+    return str(value).replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
 
 class export_webserver(object):
     html_body = "Pending Data Retrieval"
