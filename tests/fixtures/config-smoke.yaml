@@ -1,0 +1,17 @@
+inverter:
+  host: "192.168.30.95"
+  port: 502
+  connection: "sungrow"
+  smart_meter: true
+  model: "SG5K-D"
+  slave: 0x01
+  level: 1
+  scan_interval: 30
+  timeout: 10
+  retries: 3
+  log_console: "DEBUG"
+  log_file: "OFF"
+  use_local_time: true
+exports:
+  - name: "console"
+    enabled: true
