@@ -151,7 +151,8 @@ jobs:
           OWNER: "${{ github.repository_owner }}"
         run: |
           # Find the previous tag to generate changelog
-          PREV_TAG=$(git tag --list "v*" --sort=-v:refname | head -n 1)
+          # The current $TAG was already pushed, so it is first in the list — skip it
+          PREV_TAG=$(git tag --list "v*" --sort=-v:refname | sed -n '2p')
 
           {
             echo 'RELEASE_NOTES<<NOTES_EOF'
