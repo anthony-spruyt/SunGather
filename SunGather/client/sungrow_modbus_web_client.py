@@ -1,13 +1,13 @@
+import json
+import logging
+import time
+
+import requests
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 from websocket import create_connection
 
 from version import __version__
-
-import requests
-import logging
-import json
-import time
 
 
 class SungrowModbusWebClient(ModbusTcpClient):

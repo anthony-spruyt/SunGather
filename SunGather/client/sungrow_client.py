@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 
-from .sungrow_modbus_tcp_client import SungrowModbusTcpClient
-from .sungrow_modbus_web_client import SungrowModbusWebClient
-from pymodbus.client import ModbusTcpClient
-
-from version import __version__
-from datetime import datetime
-
 import logging
 import logging.handlers
 import time
+from datetime import datetime
+
+from pymodbus.client import ModbusTcpClient
+
+from version import __version__
+from .sungrow_modbus_tcp_client import SungrowModbusTcpClient
+from .sungrow_modbus_web_client import SungrowModbusWebClient
 
 class SungrowClient():
     def __init__(self, config_inverter):

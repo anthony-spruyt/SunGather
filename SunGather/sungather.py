@@ -1,16 +1,17 @@
 #!/usr/bin/python3
 
-from client.sungrow_client import SungrowClient
-from version import __version__
-
+import getopt
 import importlib
 import logging
 import logging.handlers
-import sys
-import getopt
-import yaml
-import time
 import signal
+import sys
+import time
+
+import yaml
+
+from client.sungrow_client import SungrowClient
+from version import __version__
 
 def main():
     configfilename = 'config.yaml'

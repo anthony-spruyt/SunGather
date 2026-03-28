@@ -1,6 +1,7 @@
-from pymodbus.client import ModbusTcpClient
-from Cryptodome.Cipher import AES
 from datetime import date
+
+from Cryptodome.Cipher import AES
+from pymodbus.client import ModbusTcpClient
 
 PRIV_KEY = b'Grow#0*2Sun68CbE'
 NO_CRYPTO1 = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'

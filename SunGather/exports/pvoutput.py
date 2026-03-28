@@ -1,7 +1,8 @@
-import logging
-import requests
 import datetime
+import logging
 import time
+
+import requests
 
 """
     See: https://pvoutput.org/help/api_specification.html#add-status-service

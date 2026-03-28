@@ -1,5 +1,6 @@
-import logging
 import json
+import logging
+
 import paho.mqtt.client as mqtt
 
 class export_mqtt(object):
