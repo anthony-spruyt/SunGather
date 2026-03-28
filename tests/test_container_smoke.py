@@ -36,7 +36,10 @@ def _inverter_reachable():
 
 @pytest.mark.integration
 @pytest.mark.skipif(not _docker_available(), reason='Docker not available')
-@pytest.mark.skipif(not _inverter_reachable(), reason=f'Inverter not reachable at {INVERTER_HOST}:{INVERTER_PORT}')
+@pytest.mark.skipif(
+    not _inverter_reachable(),
+    reason=f'Inverter not reachable at {INVERTER_HOST}:{INVERTER_PORT}'
+)
 class TestContainerSmoke:
     """Smoke test: build prod image, run --runonce, assert clean exit with data."""
 
@@ -83,6 +86,8 @@ class TestContainerSmoke:
 
     def test_scrape_succeeded(self):
         """Container should have scraped registers and logged them to console."""
-        assert 'Logged' in self.combined_output and 'registers to Console' in self.combined_output, (
+        has_logged = 'Logged' in self.combined_output
+        has_registers = 'registers to Console' in self.combined_output
+        assert has_logged and has_registers, (
             f"No evidence of successful scrape in output:\n{self.combined_output}"
         )

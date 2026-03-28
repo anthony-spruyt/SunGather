@@ -21,7 +21,11 @@ class export_influxdb(object):
         self.influxdb_measurements = [{}]
         self.influxdb_measurements.pop() # Remove null value from list
 
-        if not self.influxdb_config['org'] or not self.influxdb_config['bucket'] or not (self.influxdb_config['token'] or (self.influxdb_config['username'] and self.influxdb_config['password'])):
+        has_auth = (
+            self.influxdb_config['token']
+            or (self.influxdb_config['username'] and self.influxdb_config['password'])
+        )
+        if not self.influxdb_config['org'] or not self.influxdb_config['bucket'] or not has_auth:
             logging.warning("InfluxDB: Please check configuration")
             return False
 
@@ -45,7 +49,10 @@ class export_influxdb(object):
 
         for measurement in config.get('measurements'):
             if not inverter.validateRegister(measurement['register']):
-                logging.error("InfluxDB: Configured to use %s but not configured to scrape this register", measurement['register'])
+                logging.error(
+                    "InfluxDB: Configured to use %s but not configured to scrape this register",
+                    measurement['register']
+                )
                 continue
             self.influxdb_measurements.append(measurement)
 
@@ -60,10 +67,17 @@ class export_influxdb(object):
         for measurement in self.influxdb_measurements:
             register = measurement['register']
             if not inverter.validateLatestScrape(register):
-                logging.error("InfluxDB: Skipped collecting data, %s missing from last scrape", register)
+                logging.error(
+                    "InfluxDB: Skipped collecting data, %s missing from last scrape", register
+                )
                 return False
-            value = inverter.getRegisterValue(register) if type(inverter.getRegisterValue(register)) is str else float(inverter.getRegisterValue(register))
-            sequence.append(influxdb_client.Point(measurement['point']).tag("inverter", inverter.getInverterModel(True)).field(register, value))
+            raw = inverter.getRegisterValue(register)
+            value = raw if isinstance(raw, str) else float(raw)
+            sequence.append(
+                influxdb_client.Point(measurement['point'])
+                .tag("inverter", inverter.getInverterModel(True))
+                .field(register, value)
+            )
 
         try:
             self.write_api.write(self.influxdb_config['bucket'], self.client.org, sequence)

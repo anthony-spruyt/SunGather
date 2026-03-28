@@ -37,14 +37,15 @@ class SungrowClient():
 
         self.registers = [[]]
         self.registers.pop() # Remove null value from list
-        self.registers_custom = [   {'name': 'run_state', 'address': 'vr001'},
-                                    {'name': 'timestamp', 'address': 'vr002'},
-                                    {'name': 'last_reset', 'address': 'vr003'},
-                                    {'name': 'export_to_grid', 'unit': 'W', 'address': 'vr004'},
-                                    {'name': 'import_from_grid', 'unit': 'W', 'address': 'vr005'},
-                                    {'name': 'daily_export_to_grid', 'unit': 'kWh', 'address': 'vr006'},
-                                    {'name': 'daily_import_from_grid', 'unit': 'kWh', 'address': 'vr007'}
-                                ]
+        self.registers_custom = [
+            {'name': 'run_state', 'address': 'vr001'},
+            {'name': 'timestamp', 'address': 'vr002'},
+            {'name': 'last_reset', 'address': 'vr003'},
+            {'name': 'export_to_grid', 'unit': 'W', 'address': 'vr004'},
+            {'name': 'import_from_grid', 'unit': 'W', 'address': 'vr005'},
+            {'name': 'daily_export_to_grid', 'unit': 'kWh', 'address': 'vr006'},
+            {'name': 'daily_import_from_grid', 'unit': 'kWh', 'address': 'vr007'},
+        ]
 
         self.register_ranges = [[]]
         self.register_ranges.pop() # Remove null value from list
@@ -62,7 +63,8 @@ class SungrowClient():
 
         if self.inverter_config['connection'] == "http":
             config['port'] = 8082
-            # host passed as keyword — SungrowModbusWebClient declares it with a default, unlike the other clients
+            # host passed as keyword — SungrowModbusWebClient declares it with a default,
+            # unlike the other clients
             self.client = SungrowModbusWebClient(host=host, **config)
         elif self.inverter_config['connection'] == "sungrow":
             self.client = SungrowModbusTcpClient(host, **config)
@@ -109,46 +111,68 @@ class SungrowClient():
     def configure_registers(self,registersfile):
         # Check model so we can load only valid registers
         if self.inverter_config.get('model'):
-            logging.info("Bypassing Model Detection, Using config: %s", self.inverter_config.get('model'))
+            logging.info(
+                "Bypassing Model Detection, Using config: %s", self.inverter_config.get('model')
+            )
         else:
-            # Load just the register to detect model, then we can load the rest of registers based on returned model
+            # Load just the register to detect model, then load the rest based on returned model
             for register in registersfile['registers'][0]['read']:
                 if register.get('name') == "device_type_code":
                     register['type'] = "read"
                     self.registers.append(register)
-                    if self.load_registers(register['type'], register['address'] -1, 1): # Needs to be address -1
-                        if isinstance(self.latest_scrape.get('device_type_code'),int):
-                            logging.warning("Unknown Type Code Detected: %s", self.latest_scrape.get('device_type_code'))
+                    if self.load_registers(register['type'], register['address'] - 1, 1):
+                        if isinstance(self.latest_scrape.get('device_type_code'), int):
+                            logging.warning(
+                                "Unknown Type Code Detected: %s",
+                                self.latest_scrape.get('device_type_code')
+                            )
                         else:
-                            self.inverter_config['model'] = self.latest_scrape.get('device_type_code')
-                            logging.info("Detected Model: %s", self.inverter_config.get('model'))
+                            self.inverter_config['model'] = (
+                                self.latest_scrape.get('device_type_code')
+                            )
+                            logging.info(
+                                "Detected Model: %s", self.inverter_config.get('model')
+                            )
                     else:
                         logging.info('Model detection failed, please set model in config.py')
                     self.registers.pop()
                     break
 
         if self.inverter_config.get('serial_number'):
-            logging.info("Bypassing Serial Detection, Using config: %s", self.inverter_config.get('serial_number'))
+            logging.info(
+                "Bypassing Serial Detection, Using config: %s",
+                self.inverter_config.get('serial_number')
+            )
         else:
-            # Load just the register to detect serial number, then we can load the rest of registers based on returned model
+            # Load just the register to detect serial number, then load the rest based on model
             for register in registersfile['registers'][0]['read']:
                 if register.get('name') == "serial_number":
                     register['type'] = "read"
                     self.registers.append(register)
-                    if self.load_registers(register['type'], register['address'] -1, 10): # Needs to be address -1
-                        if isinstance(self.latest_scrape.get('serial_number'),int):
-                            logging.warning("Unknown Type Code Detected: %s", self.latest_scrape.get('serial_number'))
+                    if self.load_registers(register['type'], register['address'] - 1, 10):
+                        if isinstance(self.latest_scrape.get('serial_number'), int):
+                            logging.warning(
+                                "Unknown Type Code Detected: %s",
+                                self.latest_scrape.get('serial_number')
+                            )
                         else:
-                            self.inverter_config['serial_number'] = self.latest_scrape.get('serial_number')
-                            logging.info("Detected Serial: %s", self.inverter_config.get('serial_number'))
+                            self.inverter_config['serial_number'] = (
+                                self.latest_scrape.get('serial_number')
+                            )
+                            logging.info(
+                                "Detected Serial: %s", self.inverter_config.get('serial_number')
+                            )
                     else:
-                        logging.info('Serial detection failed, please set serial number in config.py')
+                        logging.info(
+                            'Serial detection failed, please set serial number in config.py'
+                        )
                     self.registers.pop()
                     break
 
         # Load register list based on name and value after checking model
         for register in registersfile['registers'][0]['read']:
-            if register.get('level',3) <= self.inverter_config.get('level') or self.inverter_config.get('level') == 3:
+            if (register.get('level', 3) <= self.inverter_config.get('level')
+                    or self.inverter_config.get('level') == 3):
                 register['type'] = "read"
                 register.pop('level')
                 if register.get('smart_meter') and self.inverter_config.get('smart_meter'):
@@ -163,7 +187,8 @@ class SungrowClient():
                     self.registers.append(register)
 
         for register in registersfile['registers'][1]['hold']:
-            if register.get('level',3) <= self.inverter_config.get('level') or self.inverter_config.get('level') == 3:
+            if (register.get('level', 3) <= self.inverter_config.get('level')
+                    or self.inverter_config.get('level') == 3):
                 register['type'] = "hold"
                 register.pop('level')
                 if register.get('smart_meter') and self.inverter_config.get('smart_meter'):
@@ -183,7 +208,10 @@ class SungrowClient():
             register_range['type'] = "read"
             for register in self.registers:
                 if register.get("type") == register_range.get("type"):
-                    if register.get('address') >= register_range.get("start") and register.get('address') <= (register_range.get("start") + register_range.get("range")):
+                    if (register.get('address') >= register_range.get("start")
+                        and register.get('address') <= (
+                            register_range.get("start") + register_range.get("range")
+                        )):
                         register_range_used = True
                         continue
             if register_range_used:
@@ -195,7 +223,10 @@ class SungrowClient():
             register_range['type'] = "hold"
             for register in self.registers:
                 if register.get("type") == register_range.get("type"):
-                    if register.get('address') >= register_range.get("start") and register.get('address') <= (register_range.get("start") + register_range.get("range")):
+                    if (register.get('address') >= register_range.get("start")
+                        and register.get('address') <= (
+                            register_range.get("start") + register_range.get("range")
+                        )):
                         register_range_used = True
                         continue
             if register_range_used:
@@ -206,9 +237,13 @@ class SungrowClient():
         try:
             logging.debug('load_registers: %s, %s:%s', register_type, start, count)
             if register_type == "read":
-                rr = self.client.read_input_registers(start, count=count, device_id=self.inverter_config['slave'])
+                rr = self.client.read_input_registers(
+                    start, count=count, device_id=self.inverter_config['slave']
+                )
             elif register_type == "hold":
-                rr = self.client.read_holding_registers(start, count=count, device_id=self.inverter_config['slave'])
+                rr = self.client.read_holding_registers(
+                    start, count=count, device_id=self.inverter_config['slave']
+                )
             else:
                 raise RuntimeError(f"Unsupported register type: {type}")
         except Exception as err:
@@ -226,7 +261,9 @@ class SungrowClient():
             return False
 
         if len(rr.registers) != count:
-            logging.warning("Mismatched number of registers read %s != %s", len(rr.registers), count)
+            logging.warning(
+                "Mismatched number of registers read %s != %s", len(rr.registers), count
+            )
             return False
 
         for num in range(0, count):
@@ -249,7 +286,7 @@ class SungrowClient():
                     elif register.get('datatype') == "S16":
                         if register_value == 0xFFFF or register_value == 0x7FFF:
                             register_value = 0
-                        if register_value >= 32767:  # Anything greater than 32767 is a negative for 16bit
+                        if register_value >= 32767:  # Anything > 32767 is negative for 16bit
                             register_value = (register_value - 65536)
                     elif register.get('datatype') == "U32":
                         u32_value = rr.registers[num+1]
@@ -259,13 +296,14 @@ class SungrowClient():
                             register_value = (register_value + u32_value * 0x10000)
                     elif register.get('datatype') == "S32":
                         u32_value = rr.registers[num+1]
-                        if register_value == 0xFFFF and (u32_value == 0xFFFF or u32_value == 0x7FFF):
+                        s32_zero = (u32_value == 0xFFFF or u32_value == 0x7FFF)
+                        if register_value == 0xFFFF and s32_zero:
                             register_value = 0
                         elif u32_value >= 32767:  # Anything greater than 32767 is a negative
                             register_value = (register_value + u32_value * 0x10000 - 0xffffffff -1)
                         else:
                             register_value = register_value + u32_value * 0x10000
-                    elif register.get('datatype') == "UTF-8": # This seems to be Serial only, 10 bytes
+                    elif register.get('datatype') == "UTF-8":  # Serial only, 10 bytes
                         utf_value = register_value.to_bytes(2, 'big')
                         for x in range(1,5):
                             utf_value += rr.registers[num+x].to_bytes(2, 'big')
@@ -281,7 +319,10 @@ class SungrowClient():
                                 match = True
                         if not match:
                             default = register.get('default')
-                            logging.debug("No matching value for %s in datarange of %s, using default %s", register_value, register_name, default)
+                            logging.debug(
+                                "No matching value for %s in datarange of %s, using default %s",
+                                register_value, register_name, default
+                            )
                             register_value = default
 
                     if register.get('accuracy'):
@@ -364,8 +405,13 @@ class SungrowClient():
 
         for range in self.register_ranges:
             load_registers_count +=1
-            logging.debug('Scraping: %s, %s:%s', range.get("type"), range.get("start"), range.get("range"))
-            if not self.load_registers(range.get('type'), int(range.get('start')), int(range.get('range'))):
+            logging.debug(
+                'Scraping: %s, %s:%s', range.get("type"), range.get("start"), range.get("range")
+            )
+            rng_type = range.get('type')
+            rng_start = int(range.get('start'))
+            rng_range = int(range.get('range'))
+            if not self.load_registers(rng_type, rng_start, rng_range):
                 load_registers_failed +=1
         if load_registers_failed == load_registers_count:
             # If every scrape fails, disconnect the client
@@ -373,7 +419,10 @@ class SungrowClient():
             self.disconnect()
             return False
         if load_registers_failed > 0:
-            logging.info('Scraping: %s/%s registers failed to scrape', load_registers_failed, load_registers_count)
+            logging.info(
+                'Scraping: %s/%s registers failed to scrape',
+                load_registers_failed, load_registers_count
+            )
 
         # Leave connection open, see if helps resolve the connection issues
         #self.close()
@@ -407,7 +456,10 @@ class SungrowClient():
                 del self.latest_scrape["second"]
             except Exception:
                 self.latest_scrape["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                logging.warning('Failed to get Timestamp from Inverter, using Local Time: %s', self.latest_scrape.get("timestamp"))
+                logging.warning(
+                    'Failed to get Timestamp from Inverter, using Local Time: %s',
+                    self.latest_scrape.get("timestamp")
+                )
                 del self.latest_scrape["year"]
                 del self.latest_scrape["month"]
                 del self.latest_scrape["day"]
@@ -441,12 +493,17 @@ class SungrowClient():
 
         ## vr001 - run_state
         # See if the inverter is running, This is added to inverters so can be read via MQTT etc...
-        # It is also used below, as some registers hold the last value on 'stop' so we need to set to 0
+        # It is also used below, as some registers hold the last value on 'stop' so we set to 0
         # to help with graphing.
         try:
             if self.latest_scrape.get('start_stop'):
-                logging.debug("start_stop:%s work_state_1:%s", self.latest_scrape.get('start_stop', 'null'), self.latest_scrape.get('work_state_1', 'null'))
-                if self.latest_scrape.get('start_stop', False) == 'Start' and self.latest_scrape.get('work_state_1', False).contains('Run'):
+                logging.debug(
+                    "start_stop:%s work_state_1:%s",
+                    self.latest_scrape.get('start_stop', 'null'),
+                    self.latest_scrape.get('work_state_1', 'null')
+                )
+                if (self.latest_scrape.get('start_stop', False) == 'Start'
+                        and self.latest_scrape.get('work_state_1', False).contains('Run')):
                     self.latest_scrape["run_state"] = "ON"
                 else:
                     self.latest_scrape["run_state"] = "OFF"
@@ -459,13 +516,23 @@ class SungrowClient():
         ## vr003 - last_reset
         date_format = "%Y-%m-%d %H:%M:%S"
         if not self.latest_scrape.get('last_reset', False):
-            logging.info('Setting Initial Daily registers; daily_export_to_grid, daily_import_from_grid, last_reset')
+            logging.info(
+                'Setting Initial Daily registers; '
+                'daily_export_to_grid, daily_import_from_grid, last_reset'
+            )
             self.latest_scrape["daily_export_to_grid"] = 0
             self.latest_scrape["daily_import_from_grid"] = 0
             self.latest_scrape['last_reset'] = self.latest_scrape["timestamp"]
-        elif datetime.strptime(self.latest_scrape['last_reset'], date_format).date() < datetime.strptime(self.latest_scrape['timestamp'], date_format).date():
-            logging.info('last_reset: ' + self.latest_scrape['last_reset'] + ', timestamp: ' + self.latest_scrape['timestamp'])
-            logging.info('Resetting Daily registers; daily_export_to_grid, daily_import_from_grid, last_reset')
+        elif (datetime.strptime(self.latest_scrape['last_reset'], date_format).date()
+              < datetime.strptime(self.latest_scrape['timestamp'], date_format).date()):
+            logging.info(
+                'last_reset: %s, timestamp: %s',
+                self.latest_scrape['last_reset'], self.latest_scrape['timestamp']
+            )
+            logging.info(
+                'Resetting Daily registers; '
+                'daily_export_to_grid, daily_import_from_grid, last_reset'
+            )
             self.latest_scrape["daily_export_to_grid"] = 0
             self.latest_scrape["daily_import_from_grid"] = 0
             self.latest_scrape['last_reset'] = self.latest_scrape["timestamp"]
@@ -478,7 +545,9 @@ class SungrowClient():
 
             if self.validateRegister('meter_power'):
                 try:
-                    power = self.latest_scrape.get('meter_power', self.latest_scrape.get('export_power', 0))
+                    power = self.latest_scrape.get(
+                        'meter_power', self.latest_scrape.get('export_power', 0)
+                    )
                     if power < 0:
                         self.latest_scrape["export_to_grid"] = abs(power)
                     elif power >= 0:
@@ -499,7 +568,10 @@ class SungrowClient():
 
         try: # If inverter is returning no data for load_power, we can calculate it manually
             if not self.latest_scrape["load_power"]:
-                self.latest_scrape["load_power"] = int(self.latest_scrape.get('total_active_power')) + int(self.latest_scrape.get('meter_power'))
+                self.latest_scrape["load_power"] = (
+                    int(self.latest_scrape.get('total_active_power'))
+                    + int(self.latest_scrape.get('meter_power'))
+                )
         except Exception:
             pass
 
@@ -507,15 +579,25 @@ class SungrowClient():
         if not self.latest_scrape.get('daily_export_to_grid', False):
             self.latest_scrape["daily_export_to_grid"] = 0
 
-        self.latest_scrape["daily_export_to_grid"] += ((self.latest_scrape["export_to_grid"] / 1000) * (self.inverter_config['scan_interval'] / 60 / 60) )
+        self.latest_scrape["daily_export_to_grid"] += (
+            (self.latest_scrape["export_to_grid"] / 1000)
+            * (self.inverter_config['scan_interval'] / 60 / 60)
+        )
 
         ## vr005
         if not self.latest_scrape.get('daily_import_from_grid', False):
             self.latest_scrape["daily_import_from_grid"] = 0
 
-        self.latest_scrape["daily_import_from_grid"] += ((self.latest_scrape["import_from_grid"] / 1000) * (self.inverter_config['scan_interval'] / 60 / 60) )
+        self.latest_scrape["daily_import_from_grid"] += (
+            (self.latest_scrape["import_from_grid"] / 1000)
+            * (self.inverter_config['scan_interval'] / 60 / 60)
+        )
 
         scrape_end = datetime.now()
-        logging.info('Inverter: Successfully scraped in %s.%s secs', (scrape_end - scrape_start).seconds, (scrape_end - scrape_start).microseconds)
+        elapsed = scrape_end - scrape_start
+        logging.info(
+            'Inverter: Successfully scraped in %s.%s secs',
+            elapsed.seconds, elapsed.microseconds
+        )
 
         return True

@@ -84,7 +84,7 @@ class TestPublish:
             return publish_response
 
         with patch('exports.pvoutput.requests.post', side_effect=post_side_effect):
-            # Patch time.time so the interval check passes (last_publish=0, now >> status_interval*60)
+            # Patch time.time so the interval check passes (last_publish=0, now >> interval*60)
             with patch('exports.pvoutput.time.time', return_value=99999):
                 from exports.pvoutput import export_pvoutput
                 exporter = export_pvoutput()

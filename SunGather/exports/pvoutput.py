@@ -17,11 +17,15 @@ import requests
     v5          Temperature         No          decimal     celsius 23.4
     v6          Voltage             No          decimal     volts   239.2
     c1          Cumulative Flag     No          number              1
-    # 1 - Both v1 and v3 values are lifetime energy values. Consumption and generation energy is reset to 0 at the start of the day.
+    # 1 - Both v1 and v3 values are lifetime energy values. Consumption and generation energy is
+    #     reset to 0 at the start of the day.
     # 2 - Only v1 generation is a lifetime energy value.
     # 3 - Only v3 consumption is a lifetime energy value.
     n           Net Flag            No          number              1
-    # n parameter when set to 1 will indicate that the power values passed are net export/import rather than gross generation/consumption. This option is used for devices that are unable to report gross consumption data. The provided import/export data is merged with existing generation data to derive consumption.
+    # n parameter when set to 1 will indicate that the power values passed are net export/import
+    # rather than gross generation/consumption. This option is used for devices that are unable to
+    # report gross consumption data. The provided import/export data is merged with existing
+    # generation data to derive consumption.
     v7          Extended Value v7   No          number      User Defined    Yes
     v8          Extended Value v8   No          number      User Defined    Yes
     v9          Extended Value v9   No          number      User Defined    Yes
@@ -69,14 +73,25 @@ class export_pvoutput(object):
 
         for parameter in config.get('parameters'):
             if not inverter.validateRegister(parameter['register']):
-                logging.error("PVOutput: Configured to use %s but not configured to scrape this register", parameter['register'])
+                logging.error(
+                    "PVOutput: Configured to use %s but not configured to scrape this register",
+                    parameter['register']
+                )
                 return False
             self.pvoutput_parameters.append(parameter)
 
         try:
-            logging.debug("PVOutput: Get System ; %s, %s, 'teams': '1'", self.url_getsystem, str(self.headers))
-            response = requests.post(url=self.url_getsystem,headers=self.headers, params={'teams': '1'}, timeout=3)
-            logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+            logging.debug(
+                "PVOutput: Get System ; %s, %s, 'teams': '1'",
+                self.url_getsystem, str(self.headers)
+            )
+            response = requests.post(
+                url=self.url_getsystem, headers=self.headers,
+                params={'teams': '1'}, timeout=3
+            )
+            logging.debug(
+                "PVOutput: Response; %s Message; %s", response.status_code, response.content
+            )
 
             if response.status_code == 200:
                 system = response.text.split(';')[0]
@@ -91,7 +106,10 @@ class export_pvoutput(object):
                         team_member = True
                         break
             else:
-                logging.error("PVOutput: System Status Failed; %s Message; %s", response.status_code, response.content)
+                logging.error(
+                    "PVOutput: System Status Failed; %s Message; %s",
+                    response.status_code, response.content
+                )
 
         except Exception as err:
             logging.error("PVOutput: Failed to configure")
@@ -100,27 +118,53 @@ class export_pvoutput(object):
 
         try:
             if not team_member and self.pvoutput_config['join_team']:
-                logging.debug("PVOutput: Join Team; %s, %s, 'tid': '%s'", self.url_jointeam, str(self.headers), self.tid)
-                response = requests.post(url=self.url_jointeam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+                logging.debug(
+                    "PVOutput: Join Team; %s, %s, 'tid': '%s'",
+                    self.url_jointeam, str(self.headers), self.tid
+                )
+                response = requests.post(
+                    url=self.url_jointeam, headers=self.headers,
+                    params={'tid': self.tid}, timeout=3
+                )
+                logging.debug(
+                    "PVOutput: Response; %s Message; %s",
+                    response.status_code, response.content
+                )
             elif team_member and not self.pvoutput_config['join_team']:
-                logging.debug("PVOutput: Leave Team; %s, %s, 'tid': '%s'", self.url_leaveteam, str(self.headers), self.tid)
-                response = requests.post(url=self.url_leaveteam,headers=self.headers, params={'tid': self.tid}, timeout=3)
-                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+                logging.debug(
+                    "PVOutput: Leave Team; %s, %s, 'tid': '%s'",
+                    self.url_leaveteam, str(self.headers), self.tid
+                )
+                response = requests.post(
+                    url=self.url_leaveteam, headers=self.headers,
+                    params={'tid': self.tid}, timeout=3
+                )
+                logging.debug(
+                    "PVOutput: Response; %s Message; %s",
+                    response.status_code, response.content
+                )
         except Exception as err:
             pass
 
-        logging.info("PVOutput: Configured export to %s every %s minutes", invertername, self.status_interval)
+        logging.info(
+            "PVOutput: Configured export to %s every %s minutes",
+            invertername, self.status_interval
+        )
         return True
 
     def collect_data(self, inverter):
         # Check all required registers have been returned by the inverter
         if not inverter.validateLatestScrape('timestamp'):
-                logging.error("PVOutput: Skipped collecting data, Timestamp missing from last scrape")
+                logging.error(
+                    "PVOutput: Skipped collecting data, Timestamp missing from last scrape"
+                )
                 return False
         for parameter in self.pvoutput_parameters:
             if not inverter.validateLatestScrape(parameter['register']):
-                logging.error("PVOutput: Skipped collecting data,  %s missing from last scrape", parameter['register'])
+                logging.error(
+                    "PVOutput: Skipped collecting data,  %s missing from last scrape",
+                    parameter['register']
+                )
                 return False
 
         # Add new data to old data and increase count of data points
@@ -131,13 +175,16 @@ class export_pvoutput(object):
                 value = value * parameter.get('multiple')
 
             # If using Cumulative Energy we just need the last data point, not the average
-            if parameter.get('name') == 'v1' and (self.pvoutput_config['cumulative_flag'] == 1 or self.pvoutput_config['cumulative_flag'] == 2):
+            cum_flag = self.pvoutput_config['cumulative_flag']
+            if parameter.get('name') == 'v1' and (cum_flag == 1 or cum_flag == 2):
                 self.collected_data[parameter.get('name')] = value
-            elif parameter.get('name') == 'v3' and (self.pvoutput_config['cumulative_flag'] == 1 or self.pvoutput_config['cumulative_flag'] == 3):
+            elif parameter.get('name') == 'v3' and (cum_flag == 1 or cum_flag == 3):
                 self.collected_data[parameter.get('name')] = value
-            # Add the last data point to the previous data point if exists, otherwise set as the last data point
-            elif self.collected_data.get(parameter.get('name'),False):
-                self.collected_data[parameter.get('name')] = round(self.collected_data[parameter.get('name')] + value,3)
+            # Add the last data point to the previous data point if exists, otherwise set as last
+            elif self.collected_data.get(parameter.get('name'), False):
+                self.collected_data[parameter.get('name')] = round(
+                    self.collected_data[parameter.get('name')] + value, 3
+                )
             else:
                 self.collected_data[parameter.get('name')] = value
 
@@ -156,19 +203,26 @@ class export_pvoutput(object):
             if((time.time() - self.last_publish) >= (self.status_interval * 60)):
                 any_data = False
                 if inverter.validateLatestScrape('timestamp'):
-                    now = datetime.datetime.strptime(inverter.getRegisterValue('timestamp'), "%Y-%m-%d %H:%M:%S")
+                    now = datetime.datetime.strptime(
+                        inverter.getRegisterValue('timestamp'), "%Y-%m-%d %H:%M:%S"
+                    )
                     data_point = str(now.strftime("%Y%m%d")) + "," + str(now.strftime("%H:%M"))
                     for x in range(1, 13):
                         field = 'v' + str(x)
                         if self.collected_data.get(field):
-                            if x == 1  and (self.pvoutput_config['cumulative_flag'] == 1 or self.pvoutput_config['cumulative_flag'] == 2):
+                            cum_flag = self.pvoutput_config['cumulative_flag']
+                            if x == 1 and (cum_flag == 1 or cum_flag == 2):
                                 value = int(self.collected_data[field])
-                            elif x == 3 and (self.pvoutput_config['cumulative_flag'] == 1 or self.pvoutput_config['cumulative_flag'] == 3):
+                            elif x == 3 and (cum_flag == 1 or cum_flag == 3):
                                 value = int(self.collected_data[field])
                             elif x == 6 or x == 7:    # Round to 1 decimal place
-                                value = round(self.collected_data[field] / self.collected_data['count'], 1)
-                            else:                     # Getting errors when uploading decimals for power/energy so return INT
-                                value = int((self.collected_data[field] / self.collected_data['count']))
+                                value = round(
+                                    self.collected_data[field] / self.collected_data['count'], 1
+                                )
+                            else:                     # Return INT, decimals cause upload errors
+                                value = int(
+                                    self.collected_data[field] / self.collected_data['count']
+                                )
                             data_point = data_point + "," + str(value)
                             any_data = True
                         else:
@@ -178,17 +232,26 @@ class export_pvoutput(object):
                 if any_data:
                     self.batch_data.append(data_point)
                 else:
-                    logging.warning("PVOutput: No data collected in last %s minutes", (self.status_interval * 60))
+                    logging.warning(
+                        "PVOutput: No data collected in last %s minutes",
+                        (self.status_interval * 60)
+                    )
 
                 # Max upload is 30, if over 30 then remove the oldest one
                 if self.batch_data.__len__() > 30:
-                    logging.warning("PVOutput: Over 30 data points scheduled to upload. max is 30 so removing oldest data point")
+                    logging.warning(
+                        "PVOutput: Over 30 data points scheduled to upload. "
+                        "max is 30 so removing oldest data point"
+                    )
                     self.batch_data.pop(0)
 
                 self.batch_count +=1
                 if self.batch_count >= self.pvoutput_config['batch_points']:
                     if not self.batch_data.__len__() > 0:
-                        logging.warning("PVOutput: No data collected in last %s minutes, Skipping upload", ((self.status_interval * 60) * self.batch_count))
+                        logging.warning(
+                            "PVOutput: No data collected in last %s minutes, Skipping upload",
+                            (self.status_interval * 60) * self.batch_count
+                        )
                         return False
                     elif self.batch_data.__len__() >= 1:
                         payload_data = None
@@ -205,13 +268,25 @@ class export_pvoutput(object):
                         payload['c1'] = self.pvoutput_config['cumulative_flag']
 
                     try:
-                        logging.debug("PVOutput: Request; %s, %s : %s", self.url_addbatchstatus, str(self.headers), str(payload))
-                        response = requests.post(url=self.url_addbatchstatus, headers=self.headers, params=payload, timeout=3)
+                        logging.debug(
+                            "PVOutput: Request; %s, %s : %s",
+                            self.url_addbatchstatus, str(self.headers), str(payload)
+                        )
+                        response = requests.post(
+                            url=self.url_addbatchstatus, headers=self.headers,
+                            params=payload, timeout=3
+                        )
                         self.batch_count = 0
 
                         if response.status_code != requests.codes.ok:
-                            logging.error("PVOutput: Upload Failed; %s Message; %s", response.status_code, response.text)
-                            logging.error("PVOutput: Request; %s, %s : %s", self.url_addbatchstatus, str(self.headers), str(payload))
+                            logging.error(
+                                "PVOutput: Upload Failed; %s Message; %s",
+                                response.status_code, response.text
+                            )
+                            logging.error(
+                                "PVOutput: Request; %s, %s : %s",
+                                self.url_addbatchstatus, str(self.headers), str(payload)
+                            )
                         else:
                             self.batch_data = []
                             self.last_publish = time.time()
@@ -222,6 +297,9 @@ class export_pvoutput(object):
                 else:
                     logging.info("PVOutput: Data added to next batch upload")
             else:
-                logging.info("PVOutput: Data logged, next upload in %s secs", int(((self.status_interval) * 60) - (time.time() - self.last_publish)))
+                logging.info(
+                    "PVOutput: Data logged, next upload in %s secs",
+                    int((self.status_interval * 60) - (time.time() - self.last_publish))
+                )
 
             self.last_run = time.time()

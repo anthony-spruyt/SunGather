@@ -36,7 +36,8 @@ def main():
             print(f'-c config.yaml             : Specify config file.')
             print(f'-r registers-file.yaml     : Specify registers file.')
             print(f'-l /logs/                  : Specify folder to store logs.')
-            print(f'-v 30                      : Logging Level, 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error')
+            print(f'-v 30                      : Logging Level, 10 = Debug, 20 = Info, '
+                  f'30 = Warning (default), 40 = Error')
             print(f'--runonce                  : Run once then exit')
             print(f'-h                         : print this help message and exit (also --help)')
             print(f'\nExample:')
@@ -53,10 +54,14 @@ def main():
                 if int(arg) >= 0 and int(arg) <= 50:
                     loglevel = int(arg)
                 else:
-                    logging.error("Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
+                    logging.error(
+                        "Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error"
+                    )
                     sys.exit(2)
             else:
-                logging.error("Valid verbose options: 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error")
+                logging.error(
+                    "Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error"
+                )
                 sys.exit(2)
         elif opt == '--runonce':
             runonce = True
@@ -104,9 +109,12 @@ def main():
         logger.handlers[0].setLevel(config_inverter['log_console'])
 
     if not config_inverter['log_file'] == "OFF":
-        if config_inverter['log_file'] == "DEBUG" or config_inverter['log_file'] == "INFO" or config_inverter['log_file'] == "WARNING" or config_inverter['log_file'] == "ERROR":
+        valid_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
+        if config_inverter['log_file'] in valid_log_levels:
             logfile = logfolder + "SunGather.log"
-            fh = logging.handlers.RotatingFileHandler(logfile, mode='w', encoding='utf-8', maxBytes=10485760, backupCount=10) # Log 10mb files, 10 x files = 100mb
+            fh = logging.handlers.RotatingFileHandler(  # Log 10mb files, 10 x files = 100mb
+                logfile, mode='w', encoding='utf-8', maxBytes=10485760, backupCount=10
+            )
             fh.formatter = logger.handlers[0].formatter
             fh.setLevel(config_inverter['log_file'])
             logger.addHandler(fh)
@@ -126,8 +134,14 @@ def main():
         sys.exit("Error: host option in config is required")
 
     if not inverter.checkConnection():
-        logging.error("Error: Connection to inverter failed: %s:%s", config_inverter.get('host'), config_inverter.get('port'))
-        sys.exit(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
+        logging.error(
+            "Error: Connection to inverter failed: %s:%s",
+            config_inverter.get('host'), config_inverter.get('port')
+        )
+        sys.exit(
+            f"Error: Connection to inverter failed: "
+            f"{config_inverter.get('host')}:{config_inverter.get('port')}"
+        )
 
     inverter.configure_registers(registersfile)
     if not inverter.inverter_config['connection'] == "http": inverter.close()
@@ -144,7 +158,7 @@ def main():
                     retval = exports[-1].configure(export, inverter)
             except Exception as err:
                 logging.error(
-                    "Failed loading export: %s\n\t\t\t     Please make sure %s.py exists in the exports folder",
+                    "Failed loading export: %s -- check %s.py exists in exports/",
                     err, export.get('name')
                 )
 
@@ -171,7 +185,10 @@ def main():
             if not inverter.inverter_config['connection'] == "http": inverter.close()
         else:
             inverter.disconnect()
-            logging.warning("Data collection failed, skipped exporting data. Retying in %s secs", scan_interval)
+            logging.warning(
+                "Data collection failed, skipped exporting data. Retying in %s secs",
+                scan_interval
+            )
 
         loop_end = time.perf_counter()
         process_time = round(loop_end - loop_start, 2)
@@ -182,7 +199,11 @@ def main():
 
         # Sleep until the next scan
         if scan_interval - process_time <= 1:
-            logging.warning("SunGather is taking %s to process, which is longer than interval %s, Please increase scan interval", process_time, scan_interval)
+            logging.warning(
+                "SunGather is taking %s to process, which is longer than interval %s, "
+                "Please increase scan interval",
+                process_time, scan_interval
+            )
             time.sleep(process_time)
         else:
             logging.info('Next scrape in %s secs', int(scan_interval - process_time))

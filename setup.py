@@ -11,7 +11,10 @@ setuptools.setup(
     author="Bohdan Flower",
     author_email="github@bohdan.net",
     maintainer="Anthony Spruyt",
-    description="Collect data from Sungrow Inverters and feed to various locations (MQTT, PVOutput, Home Assistant)",
+    description=(
+        "Collect data from Sungrow Inverters and feed to various locations "
+        "(MQTT, PVOutput, Home Assistant)"
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/anthony-spruyt/SunGather",

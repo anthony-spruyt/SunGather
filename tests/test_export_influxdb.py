@@ -60,7 +60,9 @@ class TestConfigure:
             exporter = export_influxdb()
             inverter = make_inverter()
             # No org, bucket, or token
-            result = exporter.configure({'url': 'http://localhost:8086', 'measurements': []}, inverter)
+            result = exporter.configure(
+                {'url': 'http://localhost:8086', 'measurements': []}, inverter
+            )
             assert result is False
 
     def test_configure_with_token_auth(self):

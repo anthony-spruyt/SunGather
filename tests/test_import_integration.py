@@ -9,7 +9,9 @@ def test_vendored_client_exposes_expected_api():
 
 
 def test_sungather_calls_sungrow_client_as_class_not_module_attr():
-    """sungather.py must call SungrowClient(config) directly, not SungrowClient.SungrowClient(config).
+    """sungather.py must call SungrowClient(config) directly.
+
+    It must NOT call SungrowClient.SungrowClient(config).
 
     The import is 'from client.sungrow_client import SungrowClient' which gives
     us the class. Calling SungrowClient.SungrowClient() is an AttributeError.

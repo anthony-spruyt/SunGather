@@ -22,7 +22,11 @@ class export_console(object):
         print("| {:<7} | {:<35} | {:<20} |".format('Address', 'Register','Value'))
         print("+---------+-------------------------------------+----------------------+")
         for register, value in inverter.latest_scrape.items():
-            print("| {:<7} | {:<35} | {:<20} |".format(str(inverter.getRegisterAddress(register)), str(register), str(value) + " " + str(inverter.getRegisterUnit(register))))
+            print("| {:<7} | {:<35} | {:<20} |".format(
+                str(inverter.getRegisterAddress(register)),
+                str(register),
+                str(value) + " " + str(inverter.getRegisterUnit(register))
+            ))
         print("+----------------------------------------------------------------------+")
         print(f"Logged {len(inverter.latest_scrape)} registers to Console")
 
