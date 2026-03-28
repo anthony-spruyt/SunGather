@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix all 487 pylint errors across the codebase, refactor complex functions into SOLID units, add proper type hints, and build comprehensive BDD test coverage — bringing the pylint score from 6.16/10 to 10.0/10.
+**Goal:** Fix all 486 pylint errors across the codebase, refactor complex functions into SOLID units, add proper type hints, and build comprehensive BDD test coverage — bringing the pylint score from 6.16/10 to 10.0/10.
 
 **Architecture:** Phase 1 locks in current behavior with characterization tests. Phase 2 fixes mechanical lint issues (imports, formatting, logging). Phase 3 refactors complex functions into smaller, testable units with BDD tests. Phase 4 cleans up test-specific lint and finalizes.
 
@@ -17,7 +17,7 @@
 ### Files to modify - source
 - `SunGather/client/sungrow_client.py` — 150 errors, needs major refactoring
 - `SunGather/client/sungrow_modbus_tcp_client.py` — 3 errors, minor fixes
-- `SunGather/client/sungrow_modbus_web_client.py` — 29 errors, moderate fixes
+- `SunGather/client/sungrow_modbus_web_client.py` — 28 errors, moderate fixes
 - `SunGather/sungather.py` — 78 errors, needs major refactoring
 - `SunGather/exports/mqtt.py` — 63 errors, moderate fixes + refactoring
 - `SunGather/exports/pvoutput.py` — 82 errors, moderate fixes + refactoring
@@ -885,17 +885,17 @@ class TestScrapeDisconnectOnFailure:
 
 
 class TestScrapeRunStateContainsBug:
-    """Characterization test for the .contains() bug in _compute_run_state.
+    """Characterize the .contains() bug in run_state computation.
 
-    The source code at line 450 calls:
+    The original code at sungrow_client.py:450 calls:
         self.latest_scrape.get('work_state_1', False).contains('Run')
-    Python strings have no .contains() method, so this raises
-    AttributeError. The broad `except Exception: pass` at line 456
-    swallows the error, leaving run_state unset.
-    This test documents the current broken behavior.
+    But Python strings have no .contains() method. This raises
+    AttributeError, which is silently swallowed by except Exception: pass.
+    As a result, run_state retains its persisted default value 'ON'
+    regardless of the actual inverter state.
     """
 
-    def test_run_state_not_set_due_to_contains_bug(self):
+    def test_run_state_retains_default_due_to_contains_bug(self):
         client = make_client(use_local_time=True)
         client.register_ranges = [
             {'type': 'read', 'start': 5000, 'range': 40}
@@ -905,8 +905,10 @@ class TestScrapeRunStateContainsBug:
             client.latest_scrape.update({
                 'year': 2026, 'month': 3, 'day': 28,
                 'hour': 12, 'minute': 0, 'second': 0,
-                'start_stop': 'Start', 'work_state_1': 'Run',
-                'total_active_power': 5000, 'meter_power': 0,
+                'start_stop': 'Start',
+                'work_state_1': 'Run',
+                'total_active_power': 5000,
+                'meter_power': 0,
                 'load_power': 5000,
             })
             return True
@@ -915,10 +917,11 @@ class TestScrapeRunStateContainsBug:
 
         client.scrape()
 
-        # BUG: run_state should be "ON" but .contains() raises
-        # AttributeError which is silently swallowed, so run_state
-        # is never set in latest_scrape.
-        assert 'run_state' not in client.latest_scrape
+        # BUG: run_state should be re-evaluated based on start_stop
+        # and work_state_1, but .contains() raises AttributeError
+        # which is silently swallowed. run_state retains persisted
+        # default "ON" regardless of actual state.
+        assert client.latest_scrape['run_state'] == 'ON'
 
 
 class TestScrapeHelperMethods:
@@ -996,11 +999,36 @@ git commit -m "test: add characterization tests for scrape and helper methods"
 
 - [ ] **Step 1: Write all export tests**
 
-Create each file with tests covering configure() and publish() for every export. Each test class should cover:
-- `configure()` with valid config returns True
-- `configure()` with missing required fields returns False
-- `publish()` sends data correctly
-- Error handling paths
+Create each file with tests covering configure() and publish() for every export:
+
+**tests/test_export_console.py:**
+- `test_configure_returns_true` — configure() with valid config succeeds
+- `test_configure_with_empty_config` — configure() with empty config uses defaults
+- `test_publish_prints_registers(capsys)` — publish() prints register names and values to stdout
+- `test_publish_skips_when_no_data` — publish() handles empty latest_scrape gracefully
+
+**tests/test_export_influxdb.py:**
+- `test_configure_returns_false_without_required_fields` — configure() fails when url/token/org/bucket missing
+- `test_configure_with_token_auth` — configure() with valid token/org/bucket returns True (mock influxdb_client)
+- `test_configure_with_legacy_auth` — configure() with host/port/database returns True (mock InfluxDBClient)
+- `test_publish_writes_point_sequence` — publish() creates Point objects and calls write_api.write() (mock client)
+- `test_publish_handles_connection_error` — publish() catches connection error gracefully
+
+**tests/test_export_mqtt.py:**
+- `test_configure_returns_true_with_host` — configure() succeeds when host is set (mock paho.mqtt.client)
+- `test_configure_returns_false_without_host` — configure() fails when host is missing
+- `test_configure_sets_auth_when_username_provided` — configure() calls username_pw_set when username in config
+- `test_publish_sends_register_values` — publish() calls mqtt_client.publish() for each register (mock client)
+- `test_publish_sends_ha_discovery` — publish() sends Home Assistant discovery messages when ha_discovery enabled
+- `test_publish_skips_when_not_connected` — publish() handles disconnected state gracefully
+- `test_on_disconnect_callback_sets_flag` — on_disconnect callback updates connection state
+
+**tests/test_export_pvoutput.py:**
+- `test_configure_returns_true_with_api_key_and_sid` — configure() succeeds with api_key and system_id
+- `test_configure_returns_false_without_api_key` — configure() fails when api_key missing
+- `test_publish_posts_to_api` — publish() sends POST to pvoutput.org/service/r2/addstatus.jsp (mock requests)
+- `test_publish_rate_limits` — publish() respects rate_limit interval between posts
+- `test_publish_handles_http_error` — publish() catches requests.RequestException gracefully
 
 - [ ] **Step 2: Run all new tests**
 
@@ -1114,7 +1142,21 @@ use-implicit-booleaness-not-comparison, import-outside-toplevel.
 
 Extract into: `_filter_registers_by_level()`, `_detect_field()`, `_build_register_ranges()`.
 
-- [ ] **Step 1-11: TDD cycle for each extraction** (see detailed steps above)
+- [ ] **Step 1:** Write failing test for `_filter_registers_by_level()` — assert it returns only registers matching the configured level and model, excludes smart_meter registers when disabled
+- [ ] **Step 2:** Run test, confirm failure (method does not exist yet)
+- [ ] **Step 3:** Extract `_filter_registers_by_level()` from `configure_registers` — move the level/model/smart_meter filtering loop into the new method
+- [ ] **Step 4:** Run test, confirm pass
+- [ ] **Step 5:** Write failing test for `_detect_field()` — assert it sets `inverter_config[field]` on successful register load, returns None on failure
+- [ ] **Step 6:** Run test, confirm failure
+- [ ] **Step 7:** Extract `_detect_field()` from `configure_registers` — move the model/serial detection logic into the new method
+- [ ] **Step 8:** Run test, confirm pass
+- [ ] **Step 9:** Write failing test for `_build_register_ranges()` — assert it returns correct start/range/type dicts from the scan section of register YAML
+- [ ] **Step 10:** Run test, confirm failure
+- [ ] **Step 11:** Extract `_build_register_ranges()` from `configure_registers`
+- [ ] **Step 12:** Run test, confirm pass
+- [ ] **Step 13:** Rewrite `configure_registers` to call the three extracted methods
+- [ ] **Step 14:** Run ALL characterization tests (Task 2) to verify no regression
+- [ ] **Step 15:** Commit: `refactor: extract configure_registers into smaller SOLID methods`
 
 ### Task 13: Refactor SungrowClient.scrape
 
@@ -1122,27 +1164,115 @@ Extract into: `_assemble_timestamp()`, `_assemble_alarm_timestamp()`, `_compute_
 
 Also fixes the `.contains()` bug (should be `in` operator).
 
-- [ ] **Step 1-11: TDD cycle for each extraction** (see detailed steps above)
+- [ ] **Step 1:** Write failing test for `_assemble_timestamp()` — assert it builds `"YYYY-M-D H:MM:SS"` string from year/month/day/hour/minute/second in latest_scrape; assert local time mode uses `datetime.now()` instead
+- [ ] **Step 2:** Run test, confirm failure
+- [ ] **Step 3:** Extract `_assemble_timestamp()` from `scrape`
+- [ ] **Step 4:** Run test, confirm pass
+- [ ] **Step 5:** Write failing test for `_assemble_alarm_timestamp()` — assert it builds alarm timestamp from alarm_time_* registers
+- [ ] **Step 6:** Run test, confirm failure
+- [ ] **Step 7:** Extract `_assemble_alarm_timestamp()` from `scrape`
+- [ ] **Step 8:** Run test, confirm pass
+- [ ] **Step 9:** Write failing test for `_compute_run_state()` — assert returns "ON" when start_stop=="Start" and "Run" in work_state_1, "OFF" otherwise. This fixes the `.contains()` bug by using `in` operator
+- [ ] **Step 10:** Run test, confirm failure
+- [ ] **Step 11:** Extract `_compute_run_state()` using `in` operator instead of `.contains()`
+- [ ] **Step 12:** Run test, confirm pass
+- [ ] **Step 13:** Write failing test for `_compute_grid_power()` — assert export_to_grid/import_from_grid based on meter_power sign
+- [ ] **Step 14:** Run test, confirm failure
+- [ ] **Step 15:** Extract `_compute_grid_power()` from `scrape`
+- [ ] **Step 16:** Run test, confirm pass
+- [ ] **Step 17:** Write failing test for `_compute_load_power()` — assert load_power_hybrid calculation from total_active_power and export_power_hybrid
+- [ ] **Step 18:** Run test, confirm failure
+- [ ] **Step 19:** Extract `_compute_load_power()` from `scrape`
+- [ ] **Step 20:** Run test, confirm pass
+- [ ] **Step 21:** Write failing test for `_compute_daily_grid_totals()` — assert daily counters reset at midnight, accumulate during the day
+- [ ] **Step 22:** Run test, confirm failure
+- [ ] **Step 23:** Extract `_compute_daily_grid_totals()` from `scrape`
+- [ ] **Step 24:** Run test, confirm pass
+- [ ] **Step 25:** Rewrite `scrape` to call all six extracted methods
+- [ ] **Step 26:** Run ALL characterization tests (Task 4) to verify no regression
+- [ ] **Step 27:** Commit: `refactor: extract scrape into smaller SOLID methods and fix .contains() bug`
 
 ### Task 14: Fix the .contains() bug
 
-Already addressed in Task 13's `_compute_run_state()` extraction.
+Already addressed in Task 13 Step 11 — `_compute_run_state()` uses `in` operator instead of `.contains()`.
+
+- [ ] **Step 1:** Verify the characterization test from Task 4 (`TestScrapeRunStateContainsBug`) now fails (behavior changed from buggy to correct)
+- [ ] **Step 2:** Update the test to assert `run_state == 'ON'` as *correct* behavior (no longer a bug characterization)
+- [ ] **Step 3:** Run full test suite, confirm pass
+- [ ] **Step 4:** Commit: `test: update run_state test to reflect .contains() bug fix`
 
 ### Task 15: Simplify helper methods
 
 Replace iteration-based dict lookups with `in` / `.get()`.
 
+- [ ] **Step 1:** Write tests for `validateRegister`, `getRegisterValue`, `getRegisterUnit`, `getRegisterAddress` — assert correct return values for found/not-found cases (already covered by Task 4 characterization tests)
+- [ ] **Step 2:** Refactor `validateRegister` — replace `for` loop with list comprehension or `any()`, check `registers_custom` with `any()` instead of iteration
+- [ ] **Step 3:** Refactor `getRegisterUnit` and `getRegisterAddress` — replace `for` loop + manual match with `next()` + generator expression
+- [ ] **Step 4:** Run characterization tests (Task 4 `TestScrapeHelperMethods`) to verify no regression
+- [ ] **Step 5:** Commit: `refactor: simplify helper methods using idiomatic Python`
+
 ### Task 16: Add type hints to eliminate no-member false positives
 
 Add `list[dict[str, Any]]` type hints to `registers`, `register_ranges`, etc. Clean up the `[[]] + pop()` initialization pattern.
 
-### Task 17-20: Fix remaining files
+- [ ] **Step 1:** Add type annotations to `SungrowClient.__init__` — annotate `self.registers: list[dict[str, Any]]`, `self.register_ranges: list[dict[str, Any]]`, `self.latest_scrape: dict[str, Any]`, `self.inverter_config: dict[str, Any]`
+- [ ] **Step 2:** Replace `self.registers = [[]]` / `self.registers.pop()` with `self.registers: list[dict[str, Any]] = []`
+- [ ] **Step 3:** Add return type annotations to all public methods (`configure_registers -> bool`, `scrape -> bool`, `load_registers -> bool`, etc.)
+- [ ] **Step 4:** Run pylint to verify no-member and invalid-sequence-index errors are resolved
+- [ ] **Step 5:** Run full test suite to verify no regression
+- [ ] **Step 6:** Commit: `refactor: add type hints to SungrowClient to fix pylint no-member errors`
 
-Fix web client, TCP client, MQTT, PVOutput, and all remaining files.
+### Task 17: Fix sungrow_modbus_web_client.py
+
+- [ ] **Step 1:** Fix import ordering (stdlib/third-party/local)
+- [ ] **Step 2:** Convert logging to lazy `%s` formatting
+- [ ] **Step 3:** Fix line-too-long, bare-except, raise-missing-from, unnecessary-pass
+- [ ] **Step 4:** Add type hints to method signatures
+- [ ] **Step 5:** Run tests (`test_sungrow_modbus_web_client.py`), confirm pass
+- [ ] **Step 6:** Commit: `fix(lint): fix all pylint errors in sungrow_modbus_web_client.py`
+
+### Task 18: Fix sungrow_modbus_tcp_client.py
+
+- [ ] **Step 1:** Fix import ordering and the 3 pylint errors (line-too-long, unused-argument, etc.)
+- [ ] **Step 2:** Run tests (`test_sungrow_modbus_tcp_client.py`), confirm pass
+- [ ] **Step 3:** Commit: `fix(lint): fix all pylint errors in sungrow_modbus_tcp_client.py`
+
+### Task 19: Fix exports/mqtt.py
+
+- [ ] **Step 1:** Fix the 5403-char line 12 (embedded HA discovery config) — extract to constant or file
+- [ ] **Step 2:** Convert logging to lazy formatting, fix f-string-without-interpolation
+- [ ] **Step 3:** Fix unused-argument in MQTT callbacks (prefix with `_`), bare-except, no-else-return
+- [ ] **Step 4:** Add type hints to `configure()` and `publish()` signatures
+- [ ] **Step 5:** Run tests (`test_export_mqtt.py`), confirm pass
+- [ ] **Step 6:** Commit: `fix(lint): fix all pylint errors in exports/mqtt.py`
+
+### Task 20: Fix exports/pvoutput.py
+
+- [ ] **Step 1:** Convert logging to lazy formatting, fix f-string-without-interpolation
+- [ ] **Step 2:** Fix line-too-long, no-else-return, consider-using-f-string, unspecified-encoding
+- [ ] **Step 3:** Reduce nested blocks (too-many-nested-blocks) by extracting helper methods
+- [ ] **Step 4:** Run tests (`test_export_pvoutput.py`), confirm pass
+- [ ] **Step 5:** Commit: `fix(lint): fix all pylint errors in exports/pvoutput.py`
 
 ### Task 21: Fix sungather.py main()
 
 Extract `_load_config()`, `_setup_logging()`, `_load_exports()` from main(). Fix all remaining mechanical issues.
+
+- [ ] **Step 1:** Write failing test for `_load_config()` — assert it reads YAML, merges defaults, returns config dict
+- [ ] **Step 2:** Run test, confirm failure
+- [ ] **Step 3:** Extract `_load_config()` from `main()`
+- [ ] **Step 4:** Run test, confirm pass
+- [ ] **Step 5:** Write failing test for `_setup_logging()` — assert it configures logging level from config
+- [ ] **Step 6:** Run test, confirm failure
+- [ ] **Step 7:** Extract `_setup_logging()` from `main()`
+- [ ] **Step 8:** Run test, confirm pass
+- [ ] **Step 9:** Write failing test for `_load_exports()` — assert it dynamically imports enabled export modules, skips disabled ones
+- [ ] **Step 10:** Run test, confirm failure
+- [ ] **Step 11:** Extract `_load_exports()` from `main()`
+- [ ] **Step 12:** Run test, confirm pass
+- [ ] **Step 13:** Fix remaining mechanical issues in sungather.py (imports, logging, line length)
+- [ ] **Step 14:** Run ALL tests, confirm pass
+- [ ] **Step 15:** Commit: `refactor: extract sungather.py main into smaller SOLID functions`
 
 ---
 
@@ -1188,7 +1318,7 @@ Expected: `Your code has been rated at 10.00/10`
 | f-string-without-interpolation | 34 | 11 |
 | protected-access | 29 | 7 (.pylintrc) |
 | no-member | 25 | 16 (type hints) |
-| unused-argument | 21 | 7 + inline |
+| unused-argument | 20 | 7 + inline |
 | wrong-import-order | 20 | 8 |
 | broad-exception-caught | 19 | 13 (refined) |
 | logging-not-lazy | 17 | 9 |
