@@ -6,7 +6,13 @@ from urllib.parse import parse_qs, urlparse
 
 import json
 import logging
+import re
 import urllib
+
+
+def sanitize_for_log(value):
+    """Remove control characters to prevent log injection."""
+    return re.sub(r'[\r\n]+', ' ', str(value))
 
 class export_webserver(object):
     html_body = "Pending Data Retrieval"
@@ -116,7 +122,7 @@ class MyServer(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bytes(export_webserver.config, "utf-8"))
             parsed_data = parse_qs(urlparse(self.path).query)
-            logging.info(f"{parsed_data}")
+            logging.info(sanitize_for_log(parsed_data))
         elif self.path.startswith('/json'):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -138,8 +144,8 @@ class MyServer(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers['Content-Length'])
         post_data = urllib.parse.parse_qs(self.rfile.read(length).decode('utf-8'))
-        logging.info(f"{post_data}")
-        self.wfile.write(post_data.encode("utf-8"))
+        logging.info(sanitize_for_log(post_data))
+        self.wfile.write(json.dumps(post_data).encode("utf-8"))
 
     def log_message(self, format, *args):
         pass
