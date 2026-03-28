@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix all 487 pylint errors across the codebase, refactor complex functions into SOLID units, add proper type hints, and build comprehensive BDD test coverage — bringing the pylint score from 5.20/10 to 10.0/10.
+**Goal:** Fix all 487 pylint errors across the codebase, refactor complex functions into SOLID units, add proper type hints, and build comprehensive BDD test coverage — bringing the pylint score from 6.16/10 to 10.0/10.
 
 **Architecture:** Phase 1 locks in current behavior with characterization tests. Phase 2 fixes mechanical lint issues (imports, formatting, logging). Phase 3 refactors complex functions into smaller, testable units with BDD tests. Phase 4 cleans up test-specific lint and finalizes.
 
@@ -27,12 +27,13 @@
 - `.pylintrc` — update thresholds where justified
 
 ### Files to modify - tests
-- `tests/test_container_smoke.py` — 3 errors
-- `tests/test_import_integration.py` — 5 errors
+- `tests/test_container_smoke.py` — 5 errors
+- `tests/test_import_integration.py` — 6 errors
 - `tests/test_log_injection.py` — 2 errors
 - `tests/test_sungather_cli.py` — 3 errors
 - `tests/test_sungrow_client.py` — 1 error
-- `tests/test_sungrow_modbus_tcp_client.py` — 17 errors (protected-access in tests)
+- `tests/test_sungrow_modbus_tcp_client.py` — 33 errors (protected-access in tests)
+- `tests/test_sungrow_modbus_web_client.py` — 2 errors
 
 ### Files to create - tests
 - `tests/test_sungrow_client_registers.py` — characterization tests for register config
@@ -430,6 +431,12 @@ class TestLoadRegistersU16:
         assert client.latest_scrape['test_mask'] == 1
 
     def test_u16_mask_zero_when_no_match(self):
+        # BUG: Due to Python operator precedence, the mask code at line 249:
+        #   register_value = 1 if register_value & register.get('mask') != 0 else 0
+        # parses as: register_value & (register.get('mask') != 0)
+        # NOT as: (register_value & register.get('mask')) != 0
+        # So 0x03 & (0x04 != 0) => 0x03 & True => 0x03 & 1 => 1
+        # This means the mask NEVER returns 0 when register_value is odd.
         client = make_client()
         client.client = MagicMock()
         client.registers = [
@@ -442,7 +449,7 @@ class TestLoadRegistersU16:
 
         client.load_registers('read', 0, 1)
 
-        assert client.latest_scrape['test_mask'] == 0
+        assert client.latest_scrape['test_mask'] == 1  # buggy: should be 0
 
 
 class TestLoadRegistersS16:
@@ -877,6 +884,43 @@ class TestScrapeDisconnectOnFailure:
         assert result is True
 
 
+class TestScrapeRunStateContainsBug:
+    """Characterization test for the .contains() bug in _compute_run_state.
+
+    The source code at line 450 calls:
+        self.latest_scrape.get('work_state_1', False).contains('Run')
+    Python strings have no .contains() method, so this raises
+    AttributeError. The broad `except Exception: pass` at line 456
+    swallows the error, leaving run_state unset.
+    This test documents the current broken behavior.
+    """
+
+    def test_run_state_not_set_due_to_contains_bug(self):
+        client = make_client(use_local_time=True)
+        client.register_ranges = [
+            {'type': 'read', 'start': 5000, 'range': 40}
+        ]
+
+        def fake_load(reg_type, start, count):
+            client.latest_scrape.update({
+                'year': 2026, 'month': 3, 'day': 28,
+                'hour': 12, 'minute': 0, 'second': 0,
+                'start_stop': 'Start', 'work_state_1': 'Run',
+                'total_active_power': 5000, 'meter_power': 0,
+                'load_power': 5000,
+            })
+            return True
+
+        client.load_registers = MagicMock(side_effect=fake_load)
+
+        client.scrape()
+
+        # BUG: run_state should be "ON" but .contains() raises
+        # AttributeError which is silently swallowed, so run_state
+        # is never set in latest_scrape.
+        assert 'run_state' not in client.latest_scrape
+
+
 class TestScrapeHelperMethods:
     """Test validateRegister, getRegisterValue, etc."""
 
@@ -952,7 +996,7 @@ git commit -m "test: add characterization tests for scrape and helper methods"
 
 - [ ] **Step 1: Write all export tests**
 
-Create each file with tests covering configure() and publish() for every export. See the detailed test code in the plan's companion test files. Each test class should cover:
+Create each file with tests covering configure() and publish() for every export. Each test class should cover:
 - `configure()` with valid config returns True
 - `configure()` with missing required fields returns False
 - `publish()` sends data correctly
@@ -980,13 +1024,24 @@ Expected: All tests pass
 - [ ] **Step 2: Run pylint to capture baseline**
 
 Run: `python -m pylint --rcfile .pylintrc SunGather/ setup.py tests/ 2>&1 | tail -5`
-Expected: Score around 5.20/10
+Expected: Score around 6.16/10
+
+### Task 7: Update .pylintrc for justified exceptions
+
+**Files:** `.pylintrc`
+
+- [ ] **Step 1: Update pylintrc**
+
+Add to disable: `protected-access` (tests need it, MQTT callbacks need it).
+Add design section: `max-args=6`, `max-positional-arguments=6`, `max-instance-attributes=15`.
+
+- [ ] **Step 2: Commit**
 
 ---
 
 ## Phase 2: Mechanical Lint Fixes
 
-### Task 7: Fix import ordering in all files
+### Task 8: Fix import ordering in all files
 
 **Files:**
 - Modify: `SunGather/client/sungrow_client.py:1-12`
@@ -1010,7 +1065,7 @@ Run: `python -m pytest tests/ -v --tb=short`
 git commit -am "fix(lint): reorder imports to stdlib/third-party/local"
 ```
 
-### Task 8: Convert all logging to lazy % formatting
+### Task 9: Convert all logging to lazy % formatting
 
 **Files:** All source files with logging calls
 
@@ -1026,7 +1081,7 @@ Also remove f-prefix from strings with no interpolation. Fix `logging.warn()` to
 git commit -am "fix(lint): convert all logging to lazy % formatting"
 ```
 
-### Task 9: Fix line-too-long (110 instances)
+### Task 10: Fix line-too-long (110 instances)
 
 - [ ] **Step 1: Break all long lines to under 100 chars**
 
@@ -1034,7 +1089,7 @@ Key targets: mqtt.py line 12 (5403 chars!), long conditionals, log messages.
 
 - [ ] **Step 2: Run tests and commit**
 
-### Task 10: Fix all remaining mechanical issues
+### Task 11: Fix all remaining mechanical issues
 
 This task covers every remaining mechanical fix. Execute each sub-step, then run tests and commit in batches.
 
@@ -1054,17 +1109,6 @@ use-implicit-booleaness-not-comparison, import-outside-toplevel.
 ---
 
 ## Phase 3: Structural Refactoring
-
-### Task 11: Update .pylintrc for justified exceptions
-
-**Files:** `.pylintrc`
-
-- [ ] **Step 1: Update pylintrc**
-
-Add to disable: `protected-access` (tests need it, MQTT callbacks need it).
-Add design section: `max-args=6`, `max-positional-arguments=6`, `max-instance-attributes=15`.
-
-- [ ] **Step 2: Commit**
 
 ### Task 12: Refactor SungrowClient.configure_registers
 
@@ -1126,7 +1170,7 @@ Expected: All PASS
 - [ ] **Step 1: Count tests**
 
 Run: `python -m pytest tests/ --co -q | tail -1`
-Expected: 70+ tests (up from 24)
+Expected: 90+ tests (up from 47)
 
 - [ ] **Step 2: Verify pylint score**
 
@@ -1139,37 +1183,37 @@ Expected: `Your code has been rated at 10.00/10`
 
 | Error | Count | Task |
 | ----- | ----- | ---- |
-| line-too-long | 110 | 9 |
-| logging-fstring-interpolation | 88 | 8 |
-| f-string-without-interpolation | 34 | 10 |
-| protected-access | 29 | 11 (.pylintrc) |
+| line-too-long | 110 | 10 |
+| logging-fstring-interpolation | 88 | 9 |
+| f-string-without-interpolation | 34 | 11 |
+| protected-access | 29 | 7 (.pylintrc) |
 | no-member | 25 | 16 (type hints) |
-| unused-argument | 21 | 11 + inline |
-| wrong-import-order | 20 | 7 |
+| unused-argument | 21 | 7 + inline |
+| wrong-import-order | 20 | 8 |
 | broad-exception-caught | 19 | 13 (refined) |
-| logging-not-lazy | 17 | 8 |
-| multiple-statements | 10 | 10 |
-| consider-using-f-string | 10 | 10 |
-| unnecessary-dunder-call | 8 | 10 |
-| unused-variable | 7 | 10 |
+| logging-not-lazy | 17 | 9 |
+| multiple-statements | 10 | 11 |
+| consider-using-f-string | 10 | 11 |
+| unnecessary-dunder-call | 8 | 11 |
+| unused-variable | 7 | 11 |
 | invalid-sequence-index | 7 | 16 (type hints) |
-| unspecified-encoding | 6 | 10 |
+| unspecified-encoding | 6 | 11 |
 | too-many-statements | 5 | 12, 13, 21 |
 | too-many-branches | 5 | 12, 13, 21 |
-| superfluous-parens | 5 | 10 |
-| no-else-return | 5 | 10 |
-| unused-import | 5 | 10 |
-| import-outside-toplevel | 5 | 10 |
-| too-many-instance-attributes | 4 | 11 (.pylintrc) |
-| bare-except | 4 | 10 |
-| too-many-positional-arguments | 3 | 11 (.pylintrc) |
-| too-many-arguments | 3 | 11 (.pylintrc) |
+| superfluous-parens | 5 | 11 |
+| no-else-return | 5 | 11 |
+| unused-import | 5 | 11 |
+| import-outside-toplevel | 5 | 11 |
+| too-many-instance-attributes | 4 | 7 (.pylintrc) |
+| bare-except | 4 | 11 |
+| too-many-positional-arguments | 3 | 7 (.pylintrc) |
+| too-many-arguments | 3 | 7 (.pylintrc) |
 | too-many-nested-blocks | 3 | 20 |
-| subprocess-run-check | 3 | 10 |
-| raise-missing-from | 3 | 10 |
-| consider-using-with | 3 | 10 |
-| consider-using-in | 3 | 10 |
+| subprocess-run-check | 3 | 11 |
+| raise-missing-from | 3 | 11 |
+| consider-using-with | 3 | 11 |
+| consider-using-in | 3 | 11 |
 | too-many-locals | 2 | 12, 13 |
-| deprecated-method | 2 | 10 |
-| bad-indentation | 2 | 10 |
-| All remaining 1-count | 11 | 10, 17 |
+| deprecated-method | 2 | 11 |
+| bad-indentation | 2 | 11 |
+| All remaining 1-count | 11 | 11, 17 |
