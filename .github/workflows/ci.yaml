@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
-# See https://github.com/anthony-spruyt/repo-operator/blob/main/src/templates/.github/workflows/ci.yaml for template comments
 
 name: "CI"
 on:
@@ -19,8 +18,59 @@ jobs:
   lint:
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
     secrets: "inherit"
+  build:
+    name: "Build, test, and scan"
+    needs: "lint"
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd" # v6
+
+      - name: "Set up Docker Buildx"
+        uses: "docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd" # v4
+
+      - name: "Build test image"
+        uses: "docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294" # v7
+        with:
+          context: "."
+          target: "test"
+          push: false
+          load: true
+          tags: "sungather:test"
+          cache-from: "type=gha"
+
+      - name: "Run tests"
+        run: |
+          docker run --rm \
+            -w /opt/sungather \
+            -v "${{ github.workspace }}/tests:/opt/sungather/tests:ro" \
+            sungather:test \
+            /opt/virtualenv/bin/python -m pytest tests/ -v
+
+      - name: "Build production image"
+        uses: "docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294" # v7
+        with:
+          context: "."
+          push: false
+          load: true
+          tags: "sungather:ci"
+          cache-from: "type=gha"
+          cache-to: "type=gha,mode=max"
+
+      - name: "Scan for vulnerabilities"
+        uses: "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1" # v0.29
+        with:
+          image-ref: "sungather:ci"
+          scanners: "vuln,secret,misconfig"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+          ignore-unfixed: true
+          trivyignores: ".trivyignore.yaml"
+
   summary:
     needs:
       - "lint"
+      - "build"
     if: "always()"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"
