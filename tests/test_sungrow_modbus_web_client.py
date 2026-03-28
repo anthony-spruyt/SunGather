@@ -1,5 +1,5 @@
+# pylint: disable=import-outside-toplevel
 from unittest.mock import patch, MagicMock
-import pytest
 
 from client.sungrow_modbus_web_client import SungrowModbusWebClient
 

@@ -1,10 +1,10 @@
 """Tests for the /health endpoint and webserver export."""
 
+import json
 from datetime import datetime, timedelta
 from http.server import HTTPServer
 from io import BytesIO
 from unittest.mock import patch, MagicMock
-import json
 
 import pytest  # pylint: disable=import-error
 

@@ -1,17 +1,21 @@
 import setuptools
 
-exec(open('SunGather/version.py').read())
+with open('SunGather/version.py', encoding='utf-8') as _version_file:
+    exec(_version_file.read())  # pylint: disable=exec-used
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="SunGather",
-    version=__version__,
+    version=__version__,  # pylint: disable=undefined-variable
     author="Bohdan Flower",
     author_email="github@bohdan.net",
     maintainer="Anthony Spruyt",
-    description="Collect data from Sungrow Inverters and feed to various locations (MQTT, PVOutput, Home Assistant)",
+    description=(
+        "Collect data from Sungrow Inverters and feed to various locations "
+        "(MQTT, PVOutput, Home Assistant)"
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/anthony-spruyt/SunGather",

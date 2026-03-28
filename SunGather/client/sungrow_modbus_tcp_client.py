@@ -1,6 +1,7 @@
-from pymodbus.client import ModbusTcpClient
-from Cryptodome.Cipher import AES
 from datetime import date
+
+from Cryptodome.Cipher import AES
+from pymodbus.client import ModbusTcpClient
 
 PRIV_KEY = b'Grow#0*2Sun68CbE'
 NO_CRYPTO1 = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -72,7 +73,7 @@ class SungrowModbusTcpClient(ModbusTcpClient):
             return self._recv_decipher(size)
         return super().recv(size)
 
-    def _send_cipher(self, request, addr=None):
+    def _send_cipher(self, request, _addr=None):
         self._fifo = bytes()
         length = len(request)
         padding = 16 - (length % 16)

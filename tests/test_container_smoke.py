@@ -20,6 +20,7 @@ def _docker_available():
         ['docker', 'info'],
         capture_output=True,
         timeout=10,
+        check=False,
     )
     return result.returncode == 0
 
@@ -36,7 +37,10 @@ def _inverter_reachable():
 
 @pytest.mark.integration
 @pytest.mark.skipif(not _docker_available(), reason='Docker not available')
-@pytest.mark.skipif(not _inverter_reachable(), reason=f'Inverter not reachable at {INVERTER_HOST}:{INVERTER_PORT}')
+@pytest.mark.skipif(
+    not _inverter_reachable(),
+    reason=f'Inverter not reachable at {INVERTER_HOST}:{INVERTER_PORT}'
+)
 class TestContainerSmoke:
     """Smoke test: build prod image, run --runonce, assert clean exit with data."""
 
@@ -49,6 +53,7 @@ class TestContainerSmoke:
             text=True,
             cwd=REPO_ROOT,
             timeout=300,
+            check=False,
         )
         assert build.returncode == 0, (
             f"Docker build failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
@@ -65,6 +70,7 @@ class TestContainerSmoke:
             capture_output=True,
             text=True,
             timeout=60,
+            check=False,
         )
         cls.combined_output = cls.result.stdout + cls.result.stderr
 
@@ -83,6 +89,8 @@ class TestContainerSmoke:
 
     def test_scrape_succeeded(self):
         """Container should have scraped registers and logged them to console."""
-        assert 'Logged' in self.combined_output and 'registers to Console' in self.combined_output, (
+        has_logged = 'Logged' in self.combined_output
+        has_registers = 'registers to Console' in self.combined_output
+        assert has_logged and has_registers, (
             f"No evidence of successful scrape in output:\n{self.combined_output}"
         )
