@@ -29,6 +29,26 @@ pre-commit run --all-files
 docker build -t sungather .
 ```
 
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Run a specific test file
+python -m pytest tests/test_sungather.py -v
+```
+
+24 tests covering core scraping logic, register configuration, and export modules.
+
+## CI/CD
+
+Three GitHub Actions workflows in `.github/workflows/`:
+
+- `ci.yaml` - Lint (pre-commit), build Docker image, run tests, Trivy scan on PRs
+- `release.yaml` - Build and push multi-platform images (amd64, arm64, arm/v7) to GHCR on release
+- `trivy-scan.yaml` - Daily vulnerability scan of published container images
+
 ## Architecture
 
 ### Core Flow
@@ -36,10 +56,18 @@ docker build -t sungather .
 [sungather.py](SunGather/sungather.py) is the entry point:
 
 1. Loads config YAML and register definitions
-2. Connects to inverter via `SungrowClient` (external package)
+2. Connects to inverter via vendored `SungrowClient` (`SunGather/client/`)
 3. Calls `inverter.configure_registers()` to set up model-specific registers
 4. Loads enabled export modules dynamically via `importlib`
 5. Runs polling loop: `inverter.scrape()` → `export.publish()` for each export
+
+### Vendored Client Libraries
+
+Located in [SunGather/client/](SunGather/client/). These were previously external packages, now bundled in-repo:
+
+- `sungrow_client.py` - Base Modbus client (uses pymodbus 3.x)
+- `sungrow_modbus_tcp_client.py` - Direct Modbus TCP connection
+- `sungrow_modbus_web_client.py` - HTTP/WebSocket-based connection
 
 ### Export Modules
 
@@ -60,3 +88,4 @@ Exports: `console`, `webserver`, `mqtt`, `influxdb`, `pvoutput`
 - **Register levels**: 0=basic, 1=useful (default), 2=all supported, 3=everything
 - **Connection types**: `modbus` (direct), `sungrow` (SungrowModbusTcpClient), `http` (SungrowModbusWebClient)
 - **smart_meter**: Enables grid consumption registers for SG\* models (hybrid models have this built-in)
+- **Health endpoint**: `/health` on the webserver export — returns connection status and staleness info, used by Docker HEALTHCHECK
