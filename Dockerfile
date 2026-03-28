@@ -13,6 +13,7 @@ FROM builder AS test
 
 WORKDIR /opt/sungather
 COPY SunGather/ ./SunGather/
+COPY pyproject.toml ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
 
 # Production stage
