@@ -1,5 +1,8 @@
 FROM python:3.14 AS builder
 
+WORKDIR /build
+
+# hadolint ignore=DL3008
 RUN python3 -m venv /opt/virtualenv \
  && apt-get update \
  && apt-get install -y --no-install-recommends build-essential \
