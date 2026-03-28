@@ -36,7 +36,8 @@
         "blueglassblock.better-json5",
         "esbenp.prettier-vscode",
         "mhutchie.git-graph",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "github.vscode-github-actions"
       ]
     }
   }

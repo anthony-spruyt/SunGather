@@ -12,6 +12,8 @@
         ".github/actionlint.yaml",
         ".github/CODEOWNERS",
         ".github/renovate.json5",
+        ".github/workflows/ci.yaml",
+        ".github/workflows/trivy-scan.yaml",
         ".gitignore",
         ".gitleaks.toml",
         ".hadolint.yaml",
