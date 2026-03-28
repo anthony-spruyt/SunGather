@@ -316,7 +316,7 @@ class SungrowClient():
                     start, count=count, device_id=self.inverter_config['slave']
                 )
             else:
-                raise RuntimeError(f"Unsupported register type: {type}")
+                raise RuntimeError(f"Unsupported register type: {register_type}")
         except Exception as err:  # pylint: disable=broad-exception-caught
             logging.warning("No data returned for %s, %s:%s", register_type, start, count)
             logging.debug("%s", err)

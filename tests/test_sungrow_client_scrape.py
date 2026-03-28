@@ -214,6 +214,56 @@ class TestScrapeRunState:
         # so run_state is correctly set to 'ON'.
         assert client.latest_scrape['run_state'] == 'ON'
 
+    def test_run_state_is_off_when_stopped(self):
+        """run_state is 'OFF' when start_stop='Stop'."""
+        client = make_client(use_local_time=True)
+        client.register_ranges = [
+            {'type': 'read', 'start': 5000, 'range': 40}
+        ]
+
+        def fake_load(_reg_type, _start, _count):
+            client.latest_scrape.update({
+                'year': 2026, 'month': 3, 'day': 28,
+                'hour': 12, 'minute': 0, 'second': 0,
+                'start_stop': 'Stop',
+                'work_state_1': 'Stop',
+                'total_active_power': 0,
+                'meter_power': 0,
+                'load_power': 0,
+            })
+            return True
+
+        client.load_registers = MagicMock(side_effect=fake_load)
+
+        client.scrape()
+
+        assert client.latest_scrape['run_state'] == 'OFF'
+
+    def test_run_state_off_when_work_state_not_running(self):
+        """run_state is 'OFF' when start_stop='Start' but work_state_1 != 'Run'."""
+        client = make_client(use_local_time=True)
+        client.register_ranges = [
+            {'type': 'read', 'start': 5000, 'range': 40}
+        ]
+
+        def fake_load(_reg_type, _start, _count):
+            client.latest_scrape.update({
+                'year': 2026, 'month': 3, 'day': 28,
+                'hour': 12, 'minute': 0, 'second': 0,
+                'start_stop': 'Start',
+                'work_state_1': 'Stop',
+                'total_active_power': 0,
+                'meter_power': 0,
+                'load_power': 0,
+            })
+            return True
+
+        client.load_registers = MagicMock(side_effect=fake_load)
+
+        client.scrape()
+
+        assert client.latest_scrape['run_state'] == 'OFF'
+
 
 class TestScrapeHelperMethods:
     """Test validateRegister, getRegisterValue, etc."""
