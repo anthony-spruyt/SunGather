@@ -43,7 +43,7 @@ class export_influxdb(object):
                     org=self.influxdb_config['org']
                 )
 
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             logging.error("InfluxDB: Error: %s", err)
             return False
 
@@ -81,7 +81,7 @@ class export_influxdb(object):
 
         try:
             self.write_api.write(self.influxdb_config['bucket'], self.client.org, sequence)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             logging.error("InfluxDB: %s", err)
 
         logging.info("InfluxDB: Published")

@@ -47,7 +47,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
             self.ws_socket = create_connection(
                 self.ws_endpoint, timeout=self.timeout
             )
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             logging.debug(
                 "Connection to websocket server failed: %s, Message: %s",
                 self.ws_endpoint, err
