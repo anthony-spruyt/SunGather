@@ -39,7 +39,7 @@ jobs:
 
       - name: "Scan for vulnerabilities"
         if: "steps.check.outputs.exists == 'true'"
-        uses: "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1" # v0.29
+        uses: "aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1" # v0.35.0
         with:
           image-ref: "${{ env.IMAGE }}"
           scanners: "vuln,secret,misconfig"
