@@ -1,3 +1,6 @@
 # Localhost URLs are example configurations
 http://localhost:8080/
 http://localhost:8086/
+
+# MCP server URLs use private .lan domains with shell variable substitution
+.*\.lan/.*
