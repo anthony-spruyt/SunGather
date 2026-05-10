@@ -148,34 +148,35 @@ jobs:
           VERSION: "${{ needs.resolve-version.outputs.version }}"
           DIGEST: "${{ steps.push.outputs.digest }}"
           IMAGE: "${{ env.IMAGE }}"
-          OWNER: "${{ github.repository_owner }}"
+          REPO: "${{ github.repository }}"
+          RUN_ID: "${{ github.run_id }}"
+          SHA: "${{ github.sha }}"
         run: |
-          # Find the previous tag to generate changelog
-          # The current $TAG was already pushed, so it is first in the list — skip it
           PREV_TAG=$(git tag --list "v*" --sort=-v:refname | sed -n '2p')
+          SHORT_SHA="${SHA:0:7}"
 
           {
             echo 'RELEASE_NOTES<<NOTES_EOF'
 
-            printf '## What'\''s Changed\n\n'
-            if [ -n "$PREV_TAG" ]; then
-              git log "${PREV_TAG}..HEAD" --pretty=format:'- %s' --no-merges
-            else
-              git log --pretty=format:'- %s' --no-merges
-            fi
-            printf '\n\n'
-
-            printf '## Container Image\n\n'
-            printf '```\n'
-            printf '%s:%s\n' "${IMAGE}" "${VERSION}"
-            printf '```\n\n'
             # shellcheck disable=SC2016
-            printf '**Digest:** `%s`\n\n' "${DIGEST}"
-            printf '**Platform:** linux/amd64\n\n'
-            printf '## Verify Provenance\n\n'
+            printf '`%s:%s`\n' "${IMAGE}" "${VERSION}"
+            # shellcheck disable=SC2016
+            printf '`%s`\n\n' "${DIGEST}"
+
             printf '```bash\n'
-            printf 'gh attestation verify oci://%s:%s --owner %s\n' "${IMAGE}" "${VERSION}" "${OWNER}"
-            printf '```\n'
+            printf 'docker pull %s:%s\n' "${IMAGE}" "${VERSION}"
+            printf '```\n\n'
+
+            printf '**Platform:** linux/amd64 | **Commit:** %s | **Run:** [#%s](https://github.com/%s/actions/runs/%s)\n\n' \
+              "${SHORT_SHA}" "${RUN_ID}" "${REPO}" "${RUN_ID}"
+
+            printf '### Changes\n\n'
+            if [ -n "$PREV_TAG" ]; then
+              git log "${PREV_TAG}..HEAD" --pretty=format:"- %h %s" --no-merges
+            else
+              git log --pretty=format:"- %h %s" --no-merges
+            fi
+            printf '\n'
             echo 'NOTES_EOF'
           } >> "$GITHUB_ENV"
 
