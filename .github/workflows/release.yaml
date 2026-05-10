@@ -148,7 +148,6 @@ jobs:
           VERSION: "${{ needs.resolve-version.outputs.version }}"
           DIGEST: "${{ steps.push.outputs.digest }}"
           IMAGE: "${{ env.IMAGE }}"
-          OWNER: "${{ github.repository_owner }}"
           REPO: "${{ github.repository }}"
           RUN_ID: "${{ github.run_id }}"
           SHA: "${{ github.sha }}"
@@ -177,12 +176,7 @@ jobs:
             else
               git log --pretty=format:"- %h %s" --no-merges
             fi
-            printf '\n\n'
-
-            printf '### Verify Provenance\n\n'
-            printf '```bash\n'
-            printf 'gh attestation verify oci://%s:%s --owner %s\n' "${IMAGE}" "${VERSION}" "${OWNER}"
-            printf '```\n'
+            printf '\n'
             echo 'NOTES_EOF'
           } >> "$GITHUB_ENV"
 
