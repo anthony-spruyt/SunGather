@@ -4,3 +4,6 @@ http://localhost:8086/
 
 # MCP server URLs use private .lan domains with shell variable substitution
 .*\.lan/.*
+
+# Printf format string templates in release workflow
+.*%s.*
