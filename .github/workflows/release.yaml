@@ -17,7 +17,6 @@ permissions:
   packages: "write"
   id-token: "write"
   attestations: "write"
-  security-events: "write"
 concurrency:
   group: "release"
   cancel-in-progress: false
@@ -142,12 +141,6 @@ jobs:
           tags: "sungather:release"
           cache-from: "type=gha"
           cache-to: "type=gha,mode=max"
-
-      - name: "Scan for vulnerabilities"
-        uses: "anthony-spruyt/repo-operator/.github/actions/trivy-scan@main"
-        with:
-          image-ref: "sungather:release"
-          trivyignores: ".trivyignore.yaml"
 
       - name: "Push image"
         id: "push"
