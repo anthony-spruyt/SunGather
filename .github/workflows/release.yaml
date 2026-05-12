@@ -17,6 +17,7 @@ permissions:
   packages: "write"
   id-token: "write"
   attestations: "write"
+  security-events: "write"
 concurrency:
   group: "release"
   cancel-in-progress: false
@@ -143,14 +144,9 @@ jobs:
           cache-to: "type=gha,mode=max"
 
       - name: "Scan for vulnerabilities"
-        uses: "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25" # v0.36.0
+        uses: "anthony-spruyt/repo-operator/.github/actions/trivy-scan@main"
         with:
           image-ref: "sungather:release"
-          scanners: "vuln,secret,misconfig"
-          format: "table"
-          exit-code: "1"
-          severity: "CRITICAL,HIGH"
-          ignore-unfixed: true
           trivyignores: ".trivyignore.yaml"
 
       - name: "Push image"
