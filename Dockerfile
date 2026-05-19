@@ -1,4 +1,4 @@
-FROM python:3.14@sha256:89a288a9a9e9141b9f0c51744c358138da6369897792f1af3f5425e407d9529a AS builder
+FROM python:3.14@sha256:3af2a863de1fdc307e760c13e619b3099c6699625b4055d2c26df0a06ef94611 AS builder
 
 WORKDIR /build
 
@@ -20,7 +20,7 @@ COPY pyproject.toml ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
 
 # Production stage
-FROM python:3.14-slim@sha256:7a500125bc50693f2214e842a621440a1b1b9cbb2188f74ab045d29ed2ea5856
+FROM python:3.14-slim@sha256:cb2a026931ad98548889f820f852e3399cdf45af067577baba5e06d222bd08d1
 
 RUN useradd -r -m sungather
 
