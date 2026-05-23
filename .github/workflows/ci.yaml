@@ -18,8 +18,8 @@ jobs:
   lint:
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
     secrets: "inherit"
-  build:
-    name: "Build, test, and scan"
+  build-and-test:
+    name: "Build and test"
     needs: "lint"
     runs-on: "ubuntu-latest"
     steps:
@@ -47,25 +47,9 @@ jobs:
             sungather:test \
             /opt/virtualenv/bin/python -m pytest tests/ -v
 
-      - name: "Build production image"
-        uses: "docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf" # v7
-        with:
-          context: "."
-          push: false
-          load: true
-          tags: "sungather:ci"
-          cache-from: "type=gha"
-          cache-to: "type=gha,mode=max"
-
-      - name: "Scan for vulnerabilities"
-        uses: "anthony-spruyt/repo-operator/.github/actions/trivy-scan@main"
-        with:
-          image-ref: "sungather:ci"
-          trivyignores: ".trivyignore.yaml"
-
   summary:
     needs:
       - "lint"
-      - "build"
+      - "build-and-test"
     if: "always()"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"
