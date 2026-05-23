@@ -47,7 +47,7 @@ jobs:
         env:
           BUMP: "${{ inputs.bump }}"
         run: |
-          LATEST=$(git tag --list --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          LATEST=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
 
           if [ -z "$LATEST" ]; then
             CURRENT="0.0.0"
@@ -183,7 +183,7 @@ jobs:
           SERVER_URL: "${{ github.server_url }}"
           REPO: "${{ github.repository }}"
         run: |
-          PREV_TAG=$(git tag --list --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sed -n '2p')
+          PREV_TAG=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 2 | head -n 1)
 
           {
             echo 'RELEASE_NOTES<<NOTES_EOF'
