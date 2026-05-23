@@ -47,7 +47,8 @@ jobs:
         env:
           BUMP: "${{ inputs.bump }}"
         run: |
-          LATEST=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          LATEST=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | \
+            sed 's/^v//' | sort -V | tail -n 1)
 
           if [ -z "$LATEST" ]; then
             CURRENT="0.0.0"
@@ -105,6 +106,14 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+
+      - name: "Capture previous tag"
+        id: "prev"
+        run: |
+          PREV_TAG=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | \
+            awk '{ n=$0; gsub(/^v/,"",n); print n" "$0 }' | sort -k1,1 -V | \
+            awk '{print $2}' | tail -n 1)
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
       - name: "Inject version into source"
         env:
@@ -183,7 +192,7 @@ jobs:
           SERVER_URL: "${{ github.server_url }}"
           REPO: "${{ github.repository }}"
         run: |
-          PREV_TAG=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 2 | head -n 1)
+          PREV_TAG="${{ steps.prev.outputs.prev_tag }}"
 
           {
             echo 'RELEASE_NOTES<<NOTES_EOF'
