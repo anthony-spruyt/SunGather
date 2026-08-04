@@ -5,7 +5,7 @@ set -euo pipefail
 
 # Install Python LSP server for cclsp
 # renovate: depName=python-lsp-server datasource=pypi
-PYLSP_VERSION="1.14.0"
+PYLSP_VERSION="1.15.0"
 
 echo "Installing python-lsp-server ${PYLSP_VERSION}..."
 pipx install "python-lsp-server==${PYLSP_VERSION}"
