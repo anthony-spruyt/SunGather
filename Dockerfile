@@ -20,7 +20,7 @@ COPY pyproject.toml ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
 
 # Production stage
-FROM python:3.14-slim@sha256:d6e0850f13fda0e2305d4c3c1c2f7930fe1042d34ddd958e49bba6ef685d0bb2
+FROM python:3.14-slim@sha256:5b945726c4d7ffe6595dc7498ad17fd0397e373c5181c24819a7028e8b1276dc
 
 # hadolint ignore=DL3027,DL3008
 RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
