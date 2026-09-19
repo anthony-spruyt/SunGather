@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "always-update": true,
+  "draft": true,
+  "force-tag-creation": true,
+  "last-release-sha": "299f6abe25767b396f5664a3a71b8bfb32b7386a",
+  "changelog-sections": [
+    {
+      "type": "feat",
+      "section": "Features"
+    },
+    {
+      "type": "fix",
+      "section": "Bug Fixes"
+    },
+    {
+      "type": "perf",
+      "section": "Performance Improvements"
+    },
+    {
+      "type": "refactor",
+      "section": "Code Refactoring",
+      "hidden": false
+    },
+    {
+      "type": "chore",
+      "section": "Dependencies",
+      "hidden": false
+    },
+    {
+      "type": "docs",
+      "section": "Documentation",
+      "hidden": false
+    },
+    {
+      "type": "ci",
+      "section": "Continuous Integration",
+      "hidden": false
+    }
+  ],
+  "packages": {
+    "SunGather": {
+      "release-type": "python",
+      "component": "sungather",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "changelog-path": "/CHANGELOG.md"
+    }
+  }
+}

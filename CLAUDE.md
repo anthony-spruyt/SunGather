@@ -10,7 +10,7 @@ SunGather collects data from Sungrow inverters via ModbusTCP and exports to vari
 
 ```bash
 # Install dependencies
-pip3 install --upgrade -r requirements.txt
+pip3 install --upgrade -r SunGather/requirements.txt
 
 # Run the application
 cd SunGather && python3 sungather.py -c config.yaml
@@ -25,8 +25,8 @@ pre-commit run --all-files
 # Full linting with MegaLinter (requires Docker)
 ./lint.sh
 
-# Build Docker image
-docker build -t sungather .
+# Build Docker image (context stays at the repo root)
+docker build -f SunGather/Dockerfile -t sungather .
 ```
 
 ## Testing
@@ -51,18 +51,49 @@ SUNGATHER_TEST_INVERTER_HOST=<inverter-ip> python -m pytest tests/test_container
 Three GitHub Actions workflows in `.github/workflows/`:
 
 - `ci.yaml` - Lint (pre-commit), build Docker image, run tests, Trivy scan on PRs
-- `release.yaml` - **Workflow dispatch only.** Computes the next semver, builds and pushes the Docker image (amd64) to GHCR, creates the git tag, and creates the GitHub Release — all automatically. **Do NOT manually create tags or GitHub Releases; the workflow handles everything.**
+- `release-please.yaml` - Runs on every push to `main`. Maintains a release PR from conventional commits; merging it creates the `vX.Y.Z` tag, builds and pushes the image (amd64) to GHCR, and publishes the GitHub Release.
 - `trivy-scan.yaml` - Daily vulnerability scan of published container images
 
 ### Releasing
 
-Releases are done **exclusively** via the `release.yaml` workflow dispatch in GitHub Actions:
+Releases are fully automated by [release-please](https://github.com/googleapis/release-please):
 
-1. Go to Actions → Release → Run workflow
-2. Select the bump type (patch / minor / major)
-3. The workflow computes the version, runs tests, builds the image, pushes it, creates the git tag, and creates the GitHub Release
+1. Land a conventional commit on `main` that touches `SunGather/**`
+2. release-please opens or updates a release PR titled `chore: release main`, bumping `SunGather/version.py`, `.release-please-manifest.json`, and `CHANGELOG.md`
+3. Mergify auto-merges that PR (it carries the `autorelease: pending` label)
+4. Merging cuts the tag `vX.Y.Z`, pushes `ghcr.io/anthony-spruyt/sungather:X.Y.Z` and `:latest`, and flips the draft release to published
 
-**Never manually create git tags or GitHub Releases.** Tags are immutable — a manual tag will conflict with the automated workflow and cannot be reused.
+Note the tag carries a leading `v`; the image tag does not.
+
+**Never manually create git tags or GitHub Releases, and never hand-edit `SunGather/version.py`.** release-please owns all three.
+
+#### Commit convention
+
+The version bump and changelog are derived from commit prefixes:
+
+| Prefix      | Changelog section        | Bump  |
+| ----------- | ------------------------ | ----- |
+| `feat:`     | Features                 | minor |
+| `fix:`      | Bug Fixes                | patch |
+| `perf:`     | Performance Improvements | patch |
+| `refactor:` | Code Refactoring         | patch |
+| `chore:`    | Dependencies             | patch |
+| `docs:`     | Documentation            | patch |
+| `ci:`       | Continuous Integration   | patch |
+
+`feat!:` or a `BREAKING CHANGE:` footer forces a major bump. Any other prefix is omitted from the changelog entirely.
+
+#### Release scope
+
+Only commits touching `SunGather/**` cut a release. That directory holds the app code, the `Dockerfile`, and `requirements.txt` — everything that goes into the image. Config sync, Renovate dotfile bumps, docs, and CI changes are deliberately invisible to release-please so they don't produce empty releases.
+
+To force a release without an in-scope change — say, rebuilding for a base image CVE — use a `Release-As:` footer:
+
+```text
+chore: rebuild for base image CVE
+
+Release-As: 2.0.1
+```
 
 ## Architecture
 
