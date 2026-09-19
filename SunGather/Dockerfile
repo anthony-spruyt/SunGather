@@ -8,7 +8,7 @@ RUN python3 -m venv /opt/virtualenv \
  && apt-get install -y --no-install-recommends build-essential \
  && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY SunGather/requirements.txt ./
 RUN /opt/virtualenv/bin/pip3 install --no-cache-dir -r requirements.txt
 
 # Test stage: includes pytest and source code for CI
@@ -23,9 +23,10 @@ RUN /opt/virtualenv/bin/pip3 install --no-cache-dir pytest
 FROM python:3.14-slim@sha256:7bf6c3111fe094f8ee1a1cbcdc63c4cfb345b0e3df42d5aa9a90b3b4b022ab6d
 
 # hadolint ignore=DL3027,DL3008
-RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
-
-RUN useradd -r -m -u 999 sungather
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -r -m -u 999 sungather
 
 COPY --from=builder /opt/virtualenv /opt/virtualenv
 

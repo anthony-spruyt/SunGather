@@ -71,7 +71,7 @@ I have learned a lot from the following projects, THANK YOU
 ```sh
 git clone https://github.com/anthony-spruyt/SunGather.git
 cd SunGather
-pip3 install --upgrade -r requirements.txt
+pip3 install --upgrade -r SunGather/requirements.txt
 ```
 
 Copy config-example.yaml to config.yaml, change values as required (see comments in file)
@@ -236,7 +236,7 @@ SH5K-20, SH3K6, SH4K6, SH5K-V13, SH5K-30, SH3K6-30, SH4K6-30, SH5.0RS, SH3.6RS, 
 
 ## Building
 
-Builds are automated via GitHub Actions CI/CD pipeline. The `release.yaml` workflow builds multi-platform images (linux/amd64, linux/arm64, linux/arm/v7) and pushes to GHCR.
+Builds are automated via GitHub Actions CI/CD pipeline. The `release-please.yaml` workflow builds `linux/amd64` images and pushes to GHCR.
 
 To build locally:
 
