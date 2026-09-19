@@ -1,5 +1,5 @@
 inverter:
-  host: 192.168.1.100 # [Required] IP Address of the Inverter or Dongle
+  host: 192.0.2.100 # [Required] IP Address of the Inverter or Dongle
   # port: 502                               # [Optional] Default for modbus is 502, for http is 8082
   # timeout: 10                             # [Optional] Default is 10, how long to wait for a connection
   # retries: 3                              # [Optional] Default is 3, how many times to retry if connection fails
@@ -60,7 +60,7 @@ exports:
   # Publish Registers to MQTT / Home Assistant
   - name: mqtt
     enabled: False # [Optional] Default is False
-    host: 192.168.1.200 # [Required] IP or Hostname of MQTT Server
+    host: 192.0.2.200 # [Required] IP or Hostname of MQTT Server
     # port: 1883                            # [Optional] Default 1883
     # topic: "SunGather/{serial_number}"    # [Optional] Default: "SunGather/{serial_number}"
     # username:                             # [Optional] Username is MQTT server requires it

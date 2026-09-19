@@ -15,7 +15,7 @@ class TestSungrowModbusTcpClientInit:
     def test_init_sets_cipher_off(self, _mock_init):
         """Init should start with cipher disabled."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
-        client.__init__(host='192.168.1.1')  # pylint: disable=unnecessary-dunder-call
+        client.__init__(host='192.0.2.1')  # pylint: disable=unnecessary-dunder-call
         assert client._use_cipher is False
         assert client._key is None
         assert client._aes_ecb is None
