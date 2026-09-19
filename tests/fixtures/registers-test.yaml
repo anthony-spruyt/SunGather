@@ -1,0 +1,128 @@
+# tests/fixtures/registers-test.yaml
+# Minimal register file for unit tests
+version: 0.0.1
+vendor: TestVendor
+registers:
+  - read:
+      - name: "device_type_code"
+        level: 0
+        address: 5000
+        datatype: "U16"
+      - name: "serial_number"
+        level: 0
+        address: 5001
+        datatype: "UTF-8"
+      - name: "daily_power_yields"
+        level: 1
+        address: 5003
+        datatype: "U16"
+        unit: "kWh"
+        accuracy: 0.1
+      - name: "total_active_power"
+        level: 1
+        address: 5008
+        datatype: "S32"
+        unit: "W"
+      - name: "meter_power"
+        level: 1
+        address: 5010
+        datatype: "S32"
+        unit: "W"
+        smart_meter: true
+        models: ["SG10KTL"]
+      - name: "start_stop"
+        level: 1
+        address: 5012
+        datatype: "U16"
+        datarange:
+          - response: 0xCF
+            value: "Start"
+          - response: 0xCE
+            value: "Stop"
+      - name: "work_state_1"
+        level: 1
+        address: 5013
+        datatype: "U16"
+        datarange:
+          - response: 0
+            value: "Run"
+          - response: 2
+            value: "Stop"
+      - name: "load_power"
+        level: 1
+        address: 5014
+        datatype: "S32"
+        unit: "W"
+      - name: "export_power_hybrid"
+        level: 1
+        address: 5016
+        datatype: "S32"
+        unit: "W"
+        models: ["SH10RT"]
+      - name: "year"
+        level: 1
+        address: 5020
+        datatype: "U16"
+      - name: "month"
+        level: 1
+        address: 5021
+        datatype: "U16"
+      - name: "day"
+        level: 1
+        address: 5022
+        datatype: "U16"
+      - name: "hour"
+        level: 1
+        address: 5023
+        datatype: "U16"
+      - name: "minute"
+        level: 1
+        address: 5024
+        datatype: "U16"
+      - name: "second"
+        level: 1
+        address: 5025
+        datatype: "U16"
+      - name: "pid_alarm_code"
+        level: 2
+        address: 5030
+        datatype: "U16"
+      - name: "alarm_time_year"
+        level: 2
+        address: 5031
+        datatype: "U16"
+      - name: "alarm_time_month"
+        level: 2
+        address: 5032
+        datatype: "U16"
+      - name: "alarm_time_day"
+        level: 2
+        address: 5033
+        datatype: "U16"
+      - name: "alarm_time_hour"
+        level: 2
+        address: 5034
+        datatype: "U16"
+      - name: "alarm_time_minute"
+        level: 2
+        address: 5035
+        datatype: "U16"
+      - name: "alarm_time_second"
+        level: 2
+        address: 5036
+        datatype: "U16"
+  - hold:
+      - name: "max_power"
+        level: 1
+        address: 5100
+        datatype: "U16"
+        unit: "W"
+scan:
+  - read:
+      - start: 4999
+        range: 40
+        type: read
+  - hold:
+      - start: 5099
+        range: 10
+        type: hold

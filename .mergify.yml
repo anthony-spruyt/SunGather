@@ -1,0 +1,112 @@
+merge_queue:
+  skip_intermediate_results: true
+queue_rules:
+  - name: "default"
+    merge_method: "squash"
+    batch_size:
+      min: 1
+      max: 10
+    batch_max_wait_time: "5 min"
+    max_checks_retries: 3
+    merge_conditions:
+      - "-draft"
+      - "check-success = summary / Check Results"
+      - or:
+          - "#approved-reviews-by >= 1"
+          - and:
+              - "label=autorelease: pending"
+              - "author = repo-operator-release-bot[bot]"
+priority_rules:
+  - name: "revert PRs"
+    conditions:
+      - "label = agent/revert"
+    priority: "high"
+    allow_checks_interruption: true
+  - name: "emergency merge"
+    conditions:
+      - "label = emergency/merge"
+    priority: "high"
+    allow_checks_interruption: true
+pull_request_rules:
+  - name: "auto-merge approved PRs"
+    conditions:
+      - "#approved-reviews-by >= 1"
+      - "-label = blocked"
+      - "-draft"
+      - "-merged"
+    actions:
+      queue: {}
+  - name: "auto-merge revert PRs"
+    conditions:
+      - "label = agent/revert"
+      - "author~=.*\\[bot\\]$"
+      - "-label = blocked"
+      - "-merged"
+    actions:
+      queue: {}
+  - name: "auto-merge release-please PRs"
+    conditions:
+      - "label=autorelease: pending"
+      - "author = repo-operator-release-bot[bot]"
+      - "head~=^release-please--branches--"
+      - "files~=^\\.release-please-manifest\\.json$"
+      - "-label = blocked"
+      - "-draft"
+      - "-merged"
+    actions:
+      queue: {}
+  - name: "emergency merge (break glass)"
+    conditions:
+      - "label = emergency/merge"
+      - "author = anthony-spruyt"
+      - "-label = blocked"
+      - "-draft"
+      - "-merged"
+    actions:
+      queue: {}
+  - name: "cleanup labels on close"
+    conditions:
+      - "closed"
+      - "-merged"
+    actions:
+      label:
+        remove:
+          - "agent/triage"
+          - "agent/fixing"
+          - "agent/fixable"
+          - "agent/needs-review"
+merge_protections:
+  - name: "default"
+    if:
+      - "base = main"
+      - "-label = agent/revert"
+      - "-label = emergency/merge"
+      - "-label=autorelease: pending"
+    success_conditions:
+      - "#approved-reviews-by >= 1"
+  - name: "release-please"
+    if:
+      - "base = main"
+      - "label=autorelease: pending"
+    success_conditions:
+      - or:
+          - "author = repo-operator-release-bot[bot]"
+          - "author = xfg-release-bot[bot]"
+      - "head~=^release-please--branches--"
+      - "files~=^\\.release-please-manifest\\.json$"
+  - name: "revert-approved"
+    if:
+      - "base = main"
+      - "label = agent/revert"
+    success_conditions:
+      - "author~=.*\\[bot\\]$"
+  - name: "emergency-merge"
+    if:
+      - "base = main"
+      - "label = emergency/merge"
+    success_conditions:
+      - "author = anthony-spruyt"
+merge_protections_settings:
+  reporting_method: "check-runs"
+  auto_merge_conditions:
+    - "-author = xfg-release-bot[bot]"

@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "extensions": ["py"],
+      "command": ["pylsp"],
+      "rootDir": ".",
+      "restartInterval": 30
+    }
+  ]
+}

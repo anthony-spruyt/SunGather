@@ -5,3 +5,40 @@
 # Extend the default gitleaks config
 # https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
 useDefault = true
+
+# --- IP/CIDR Leakage Prevention ---
+# Prevents private IP addresses from being committed to public repositories.
+# Documentation and test placeholders use the reserved ranges below; a real
+# inverter address belongs in SUNGATHER_TEST_INVERTER_HOST, never in a file.
+
+[[rules]]
+id = "private-ip-rfc1918-10"
+description = "RFC1918 private IP address (10.x.x.x)"
+regex = '''(?:^|[^0-9])10\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(?:/[0-9]{1,2})?(?:[^0-9]|$)'''
+tags = ["ip-leakage"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  regexes = [
+    '''10\.0\.0\.1(?:[^0-9]|$)''',
+  ]
+
+[[rules]]
+id = "private-ip-rfc1918-172"
+description = "RFC1918 private IP address (172.16-31.x.x)"
+regex = '''(?:^|[^0-9])172\.(?:1[6-9]|2[0-9]|3[01])\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(?:/[0-9]{1,2})?(?:[^0-9]|$)'''
+tags = ["ip-leakage"]
+
+[[rules]]
+id = "private-ip-rfc1918-192"
+description = "RFC1918 private IP address (192.168.x.x)"
+regex = '''(?:^|[^0-9])192\.168\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(?:/[0-9]{1,2})?(?:[^0-9]|$)'''
+tags = ["ip-leakage"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  regexes = [
+    '''192\.168\.1\.1(?:[^0-9]|$)''',
+    '''192\.168\.1\.100(?:[^0-9]|$)''',
+    '''192\.168\.1\.200(?:[^0-9]|$)''',
+  ]

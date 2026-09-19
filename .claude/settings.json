@@ -1,105 +1,30 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "respectGitignore": true,
+  "cleanupPeriodDays": 20,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
-    "BASH_DEFAULT_TIMEOUT_MS": "420000",
-    "BASH_MAX_TIMEOUT_MS": "420000",
-    "CLAUDE_CODE_EFFORT_LEVEL": "medium"
+    "ANTHROPIC_API_KEY": "",
+    "API_TIMEOUT_MS": "30000000",
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1",
+    "CLAUDE_CODE_ENABLE_AWAY_SUMMARY": "0",
+    "CLAUDE_CODE_ENABLE_BACKGROUND_PLUGIN_REFRESH": "0",
+    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1",
+    "CLAUDE_CODE_MAX_RETRIES": "100",
+    "CLAUDE_CODE_SYNC_PLUGIN_INSTALL": "1",
+    "CLAUDE_CODE_SYNC_PLUGIN_INSTALL_TIMEOUT_MS": "120000",
+    "ENABLE_TOOL_SEARCH": "true"
   },
-  "alwaysThinkingEnabled": true,
-  "fastMode": false,
-  "prefersReducedMotion": true,
-  "model": "opus[1m]",
-  "autoUpdatesChannel": "latest",
-  "defaultMode": "acceptEdits",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
   "permissions": {
-    "defaultMode": "bypassPermissions",
-    "allow": [
-      "Bash(./lint.sh:*)",
-      "Bash(docker manifest inspect:*)",
-      "Bash(gh issue comment:*)",
-      "Bash(gh issue create:*)",
-      "Bash(gh issue edit:*)",
-      "Bash(gh issue list:*)",
-      "Bash(gh issue reopen:*)",
-      "Bash(gh issue view:*)",
-      "Bash(gh label create :*)",
-      "Bash(gh pr checkout:*)",
-      "Bash(gh pr checks:*)",
-      "Bash(gh pr comment:*)",
-      "Bash(gh pr create:*)",
-      "Bash(gh pr diff:*)",
-      "Bash(gh pr list:*)",
-      "Bash(gh pr review:*)",
-      "Bash(gh pr view:*)",
-      "Bash(gh release list:*)",
-      "Bash(gh release view:*)",
-      "Bash(gh repo list:*)",
-      "Bash(gh repo view:*)",
-      "Bash(gh run list)",
-      "Bash(gh run list:*)",
-      "Bash(gh run view:*)",
-      "Bash(gh run watch:*)",
-      "Bash(gh search:*)",
-      "Bash(git add:*)",
-      "Bash(git branch:*)",
-      "Bash(git checkout:*)",
-      "Bash(git config --get:*)",
-      "Bash(git config --list:*)",
-      "Bash(git diff:*)",
-      "Bash(git fetch:*)",
-      "Bash(git log:*)",
-      "Bash(git pull:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(git show:*)",
-      "Bash(git stash:*)",
-      "Bash(git status:*)",
-      "Bash(git switch:*)",
-      "Bash(pre-commit:*)",
-      "Bash(mkdir:*)",
-      "Bash(mkdocs:*)",
-      "Bash(npm run:*)",
-      "Bash(npm test)",
-      "Bash(npm test:*)",
-      "Bash(renovate-config-validator:*)",
-      "Bash(test:*)",
-      "mcp__ide__getDiagnostics",
-      "mcp__plugin_context7_context7__get-library-docs",
-      "mcp__plugin_context7_context7__resolve-library-id",
-      "mcp__plugin_context7_context7__query-docs",
-      "Skill(code-review:*)",
-      "Skill(code-review:code-review)",
-      "Skill(code-review:code-review:*)",
-      "Skill(hookify:list)",
-      "Skill(hookify:list:*)",
-      "Skill(hookify:writing-rules)",
-      "Skill(hookify:writing-rules:*)",
-      "WebFetch(domain:anthony-spruyt.github.io)",
-      "WebFetch(domain:docs.ceph.com)",
-      "WebFetch(domain:docs.cilium.io)",
-      "WebFetch(domain:docs.github.com)",
-      "WebFetch(domain:docs.goauthentik.io)",
-      "WebFetch(domain:docs.n8n.io)",
-      "WebFetch(domain:docs.openclaw.ai)",
-      "WebFetch(domain:docs.siderolabs.com)",
-      "WebFetch(domain:docs.victoriametrics.com)",
-      "WebFetch(domain:falco.org)",
-      "WebFetch(domain:fluxcd.io)",
-      "WebFetch(domain:github.blog)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:goauthentik.io)",
-      "WebFetch(domain:hub.docker.com)",
-      "WebFetch(domain:integrations.goauthentik.io)",
-      "WebFetch(domain:kubectl.docs.kubernetes.io)",
-      "WebFetch(domain:megalinter.io)",
-      "WebFetch(domain:qdrant.tech)",
-      "WebFetch(domain:quay.io)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:rook.io)",
-      "WebFetch(domain:talos.dev)",
-      "WebFetch(domain:www.talos.dev)",
-      "WebFetch(domain:trivy.dev)"
-    ],
     "deny": [
       "Read(./**/*id_rsa*)",
       "Read(./**/*id_ed25519*)",
@@ -140,7 +65,8 @@
       "Read(~/.gnupg/**/*)",
       "Read(~/.password-store/*)",
       "Read(~/.password-store/**/*)"
-    ]
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "hooks": {
     "PostToolUse": [
@@ -149,30 +75,48 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file_path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path' < /dev/stdin); npx prettier --write \"$file_path\" 2>/dev/null || true"
+            "command": "file_path=$(jq -r '.tool_input.file_path // .tool_input.notebook_path' < /dev/stdin); case \"$file_path\" in *.md) mdformat \"$file_path\" 2>/dev/null || true ;; *) npx prettier --write \"$file_path\" 2>/dev/null || true ;; esac"
           }
         ]
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash -c 'input=$(cat); project_dir=$(echo \"$input\" | jq -r \".workspace.project_dir\"); bash \"$project_dir/.claude/statusline.sh\" <<< \"$input\"'"
+  },
   "enabledPlugins": {
+    "hookify-plus@aspruyt-plugins": true,
+    "security-hooks@aspruyt-plugins": true,
+    "best-practices@aspruyt-plugins": true,
+    "superpowers@claude-plugins-official": false,
+    "context7@claude-plugins-official": false,
     "claude-code-setup@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": false,
     "code-review@claude-plugins-official": false,
-    "context7@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": false,
     "hookify@claude-plugins-official": false,
     "plugin-dev@claude-plugins-official": false,
-    "security-guidance@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "hookify-plus@hookify-plus": true
+    "security-guidance@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
-    "hookify-plus": {
+    "aspruyt-plugins": {
       "source": {
         "source": "github",
-        "repo": "anthony-spruyt/hookify-plus"
-      }
+        "repo": "anthony-spruyt/claude-plugins"
+      },
+      "autoUpdate": true
     }
-  }
+  },
+  "outputStyle": "ELI5",
+  "viewMode": "default",
+  "feedbackSurveyRate": 0,
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "fastMode": false,
+  "showClearContextOnPlanAccept": true,
+  "autoUpdatesChannel": "latest",
+  "channelsEnabled": false,
+  "showThinkingSummaries": true,
+  "skipDangerousModePermissionPrompt": true
 }

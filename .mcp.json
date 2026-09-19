@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "litellm": {
+      "type": "http",
+      "url": "https://litellm.${EXTERNAL_DOMAIN}/mcp",
+      "headers": {
+        "x-litellm-api-key": "Bearer ${LITELLM_API_KEY}"
+      }
+    },
+    "cclsp": {
+      "type": "stdio",
+      "command": "cclsp",
+      "env": {
+        "CCLSP_CONFIG_PATH": "/workspaces/SunGather/.claude/cclsp.json"
+      }
+    }
+  }
+}

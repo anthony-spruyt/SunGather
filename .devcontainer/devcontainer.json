@@ -1,33 +1,36 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Ubuntu",
-  "image": "mcr.microsoft.com/devcontainers/base:jammy",
+  "name": "devcontainer-common",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "NEXUS_URL": "${localEnv:NEXUS_URL}"
+    }
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "containerUser": "vscode",
+  "remoteUser": "vscode",
   "runArgs": [
+    "--security-opt",
+    "seccomp=${localWorkspaceFolder}/.devcontainer/podman-seccomp.json",
+    "--device",
+    "/dev/fuse",
     "--env-file",
-    "${localEnv:HOME}/.secrets/.env"
+    "${localEnv:HOME}/.secrets/.env.common"
   ],
   "mounts": [
+    "source=${localEnv:HOME}/.secrets/.gitignore,target=/home/vscode/.secrets/.gitignore,type=bind,readonly",
     "source=${localEnv:HOME}/.ssh/agent.sock,target=/ssh-agent,type=bind",
-    "source=${localEnv:HOME}/.ssh/allowed_signers,target=/home/vscode/.ssh/allowed_signers,type=bind,readonly",
-    "source=${localEnv:HOME}/.ssh/known_hosts,target=/home/vscode/.ssh/known_hosts,type=bind,readonly",
     "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly"
+    "source=${localWorkspaceFolderBasename}-containers,target=/var/lib/containers,type=volume"
   ],
-  "containerEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent"
-  },
   "features": {
-    "ghcr.io/devcontainers-extra/features/pre-commit": {},
-    "ghcr.io/devcontainers/features/github-cli": {},
-    "ghcr.io/devcontainers/features/docker-in-docker": {},
-    "ghcr.io/devcontainers/features/node": {},
-    "ghcr.io/devcontainers/features/python": {
-      "version": "latest"
-    },
-    "ghcr.io/devcontainers-extra/features/renovate-cli": {}
+    "ghcr.io/devcontainers-extra/features/renovate-cli": {
+      "version": "44.69.8"
+    }
   },
   "initializeCommand": "bash ${localWorkspaceFolder}/.devcontainer/initialize.sh",
-  "postCreateCommand": "bash -lc \"cd ${containerWorkspaceFolder} && ./.devcontainer/post-create.sh\"",
+  "postCreateCommand": "bash -lc \"cd ${containerWorkspaceFolder} && devcontainer-post-create\"",
   "customizations": {
     "vscode": {
       "extensions": [

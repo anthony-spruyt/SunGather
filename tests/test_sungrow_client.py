@@ -1,5 +1,4 @@
 from unittest.mock import patch, MagicMock, PropertyMock
-import pytest
 
 from client.sungrow_client import SungrowClient
 
