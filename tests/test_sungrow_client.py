@@ -5,7 +5,7 @@ from client.sungrow_client import SungrowClient
 
 def make_config(**overrides):
     defaults = {
-        'host': '192.168.1.1',
+        'host': '192.0.2.1',
         'port': 502,
         'timeout': 10,
         'retries': 3,
@@ -27,7 +27,7 @@ class TestSungrowClientInit:
         """Init should store client and inverter config from input."""
         config = make_config()
         client = SungrowClient(config)
-        assert client.client_config['host'] == '192.168.1.1'
+        assert client.client_config['host'] == '192.0.2.1'
         assert client.client_config['port'] == 502
         assert client.inverter_config['connection'] == 'modbus'
 
@@ -52,7 +52,7 @@ class TestSungrowClientConnect:
 
         MockClient.assert_called_once()
         args, kwargs = MockClient.call_args
-        assert args[0] == '192.168.1.1'
+        assert args[0] == '192.0.2.1'
         assert 'host' not in kwargs
         assert result is True
 
@@ -69,7 +69,7 @@ class TestSungrowClientConnect:
 
         MockClient.assert_called_once()
         args, kwargs = MockClient.call_args
-        assert args[0] == '192.168.1.1'
+        assert args[0] == '192.0.2.1'
         assert 'host' not in kwargs
         assert result is True
 
@@ -87,7 +87,7 @@ class TestSungrowClientConnect:
         MockClient.assert_called_once()
         args, kwargs = MockClient.call_args
         assert args == ()
-        assert kwargs['host'] == '192.168.1.1'
+        assert kwargs['host'] == '192.0.2.1'
         assert kwargs['port'] == 8082
         assert result is True
 

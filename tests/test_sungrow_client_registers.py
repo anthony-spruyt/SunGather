@@ -22,7 +22,7 @@ def load_test_registers():
 
 def make_client(**overrides):
     defaults = {
-        'host': '192.168.1.1', 'port': 502, 'timeout': 10,
+        'host': '192.0.2.1', 'port': 502, 'timeout': 10,
         'retries': 3, 'slave': 0x01, 'scan_interval': 30,
         'connection': 'modbus', 'model': None,
         'serial_number': None, 'level': 1,

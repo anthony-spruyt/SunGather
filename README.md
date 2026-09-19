@@ -189,7 +189,7 @@ Enable MQTT, configure the server and HA AutoDiscovery
 ```yaml
   - name: mqtt
     enabled: True
-    host: 192.168.1.200
+    host: 192.0.2.200
     homeassistant: True
 ```
 
