@@ -20,7 +20,7 @@ from exports.webserver import (
 def reset_webserver_state():
     """Reset class-level state before each test to prevent leakage."""
     export_webserver.last_successful_scrape = None
-    export_webserver.inverter_host = '192.168.1.100'
+    export_webserver.inverter_host = '192.0.2.100'
     export_webserver.inverter_port = 502
     export_webserver.scan_interval = 30
 
@@ -199,7 +199,7 @@ class TestCheckInverterReachable:
             mock_conn.return_value.__enter__ = MagicMock()
             mock_conn.return_value.__exit__ = MagicMock()
             assert check_inverter_reachable(
-                '192.168.1.100', 502
+                '192.0.2.100', 502
             ) is True
 
     def test_unreachable(self):
@@ -209,7 +209,7 @@ class TestCheckInverterReachable:
             side_effect=OSError,
         ):
             assert check_inverter_reachable(
-                '192.168.1.100', 502
+                '192.0.2.100', 502
             ) is False
 
     def test_timeout(self):
@@ -219,7 +219,7 @@ class TestCheckInverterReachable:
             side_effect=TimeoutError,
         ):
             assert check_inverter_reachable(
-                '192.168.1.100', 502
+                '192.0.2.100', 502
             ) is False
 
 
@@ -255,7 +255,7 @@ class TestConfigureStoresInverterInfo:
             'connection': 'modbus',
         }
         inverter.client_config = {
-            'host': '10.0.0.1', 'port': 502
+            'host': '192.0.2.10', 'port': 502
         }
         config = {
             'port': 8099, 'enabled': True, 'name': 'webserver'
@@ -264,7 +264,7 @@ class TestConfigureStoresInverterInfo:
             with patch('exports.webserver.Thread'):
                 wserver.configure(config, inverter)
         assert export_webserver.scan_interval == 60
-        assert export_webserver.inverter_host == '10.0.0.1'
+        assert export_webserver.inverter_host == '192.0.2.10'
         assert export_webserver.inverter_port == 502
 
     def test_configure_http_mode_uses_port_8082(self):
@@ -276,7 +276,7 @@ class TestConfigureStoresInverterInfo:
             'connection': 'http',
         }
         inverter.client_config = {
-            'host': '10.0.0.1', 'port': 502
+            'host': '192.0.2.10', 'port': 502
         }
         config = {
             'port': 8099, 'enabled': True, 'name': 'webserver'
@@ -295,7 +295,7 @@ class TestConfigureStoresInverterInfo:
             'connection': 'sungrow',
         }
         inverter.client_config = {
-            'host': '10.0.0.1', 'port': 502
+            'host': '192.0.2.10', 'port': 502
         }
         config = {
             'port': 8099, 'enabled': True, 'name': 'webserver'

@@ -7,7 +7,7 @@ from client.sungrow_client import SungrowClient
 
 def make_client(**overrides):
     defaults = {
-        'host': '192.168.1.1', 'port': 502, 'timeout': 10,
+        'host': '192.0.2.1', 'port': 502, 'timeout': 10,
         'retries': 3, 'slave': 0x01, 'scan_interval': 30,
         'connection': 'modbus', 'model': 'SG10KTL',
         'serial_number': 'TEST123', 'level': 1,

@@ -8,20 +8,16 @@ useDefault = true
 
 # --- IP/CIDR Leakage Prevention ---
 # Prevents private IP addresses from being committed to public repositories.
-# Documentation and test placeholders use the reserved ranges below; a real
-# inverter address belongs in SUNGATHER_TEST_INVERTER_HOST, never in a file.
+# Examples and test fixtures use RFC5737 documentation ranges (192.0.2.0/24,
+# 198.51.100.0/24, 203.0.113.0/24), which are reserved and never routable, so
+# these rules carry no allowlist. A real inverter address belongs in
+# SUNGATHER_TEST_INVERTER_HOST, never in a file.
 
 [[rules]]
 id = "private-ip-rfc1918-10"
 description = "RFC1918 private IP address (10.x.x.x)"
 regex = '''(?:^|[^0-9])10\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(?:/[0-9]{1,2})?(?:[^0-9]|$)'''
 tags = ["ip-leakage"]
-
-  [rules.allowlist]
-  regexTarget = "match"
-  regexes = [
-    '''10\.0\.0\.1(?:[^0-9]|$)''',
-  ]
 
 [[rules]]
 id = "private-ip-rfc1918-172"
@@ -34,11 +30,3 @@ id = "private-ip-rfc1918-192"
 description = "RFC1918 private IP address (192.168.x.x)"
 regex = '''(?:^|[^0-9])192\.168\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]{1,2})(?:/[0-9]{1,2})?(?:[^0-9]|$)'''
 tags = ["ip-leakage"]
-
-  [rules.allowlist]
-  regexTarget = "match"
-  regexes = [
-    '''192\.168\.1\.1(?:[^0-9]|$)''',
-    '''192\.168\.1\.100(?:[^0-9]|$)''',
-    '''192\.168\.1\.200(?:[^0-9]|$)''',
-  ]
