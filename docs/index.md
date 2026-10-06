@@ -74,19 +74,19 @@ I have learned a lot from the following projects, THANK YOU
 ```sh
 git clone https://github.com/anthony-spruyt/SunGather.git
 cd SunGather
-pip3 install --upgrade -r SunGather/requirements.txt
+uv sync
 ```
 
 Copy config-example.yaml to config.yaml, change values as required (see comments in file)
 
 ```sh
-cp config-example.yaml config.yaml
+cp src/sungather/config-example.yaml config.yaml
 ```
 
 Run SunGather:
 
 ```sh
-python3 sungather.py
+uv run sungather -c config.yaml
 ```
 
 ### Docker
@@ -124,7 +124,7 @@ If you want to use the new Energy section in Home Assistant, follow the Home Ass
 
 ### Commandline Arguments
 
-usage: python3 sungather.py [options]
+usage: sungather [options]
 
 Commandline arguments override any config file settings  
 **-c config.yaml** - Specify config file.
@@ -136,7 +136,7 @@ Commandline arguments override any config file settings
 Example:
 
 ```sh
-python3 sungather.py -c /full/path/config.yaml
+sungather -c /full/path/config.yaml
 ```
 
 ## Exports

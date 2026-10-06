@@ -1,4 +1,39 @@
+[project]
+name = "sungather"
+version = "2.0.1"
+description = "Collect data from Sungrow inverters and feed it to MQTT, InfluxDB, PVOutput and Home Assistant"
+readme = "README.md"
+license-files = ["LICENSE"]
+authors = [{ name = "Bohdan Flower", email = "github@bohdan.net" }]
+maintainers = [{ name = "Anthony Spruyt" }]
+requires-python = ">=3.10"
+dependencies = [
+    "influxdb-client~=1.0",
+    "paho-mqtt~=2.0",
+    "pycryptodomex",
+    "pymodbus>=3.6.0,<4.0.0",
+    "PyYAML~=6.0",
+    "requests~=2.0",
+    "websocket-client>=1.2.1",
+]
+
+[project.urls]
+Repository = "https://github.com/anthony-spruyt/SunGather"
+
+[project.scripts]
+sungather = "sungather.sungather:main"
+
+[build-system]
+requires = ["uv_build>=0.12,<0.13"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
 [tool.pytest.ini_options]
+testpaths = ["tests/unit"]
 markers = [
     "integration: container integration tests (require Docker and network access)",
 ]
@@ -6,7 +41,6 @@ addopts = "-m 'not integration'"
 
 [tool.ruff]
 extend = "ruff-base.toml"
-target-version = "py310"
 
 [tool.ruff.lint]
 ignore = [
@@ -14,8 +48,7 @@ ignore = [
     "LOG015", # upstream logs through the root logger that sungather.py configures
     "N801",   # export_<name> classes are looked up by name from config
     "N802",   # camelCase methods are the client's public API; do_GET/do_POST come from BaseHTTPRequestHandler
-    "N999",   # upstream package name
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["SunGather", "client", "exports", "tests", "version"]
+known-first-party = ["sungather", "tests"]

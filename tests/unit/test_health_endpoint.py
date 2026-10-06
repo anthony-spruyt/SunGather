@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from exports.webserver import (
+from sungather.exports.webserver import (
     MyServer,
     check_inverter_reachable,
     export_webserver,
@@ -48,7 +48,7 @@ def make_request(path, inverter_reachable=True):
     handler.wfile = BytesIO()
 
     with patch(
-        "exports.webserver.check_inverter_reachable",
+        "sungather.exports.webserver.check_inverter_reachable",
         return_value=inverter_reachable,
     ):
         handler.do_GET()
@@ -162,7 +162,7 @@ class TestCheckInverterReachable:
 
     def test_reachable(self):
         """Returns True when TCP connect succeeds."""
-        with patch("exports.webserver.socket.create_connection") as mock_conn:
+        with patch("sungather.exports.webserver.socket.create_connection") as mock_conn:
             mock_conn.return_value.__enter__ = MagicMock()
             mock_conn.return_value.__exit__ = MagicMock()
             assert check_inverter_reachable("192.0.2.100", 502) is True
@@ -170,7 +170,7 @@ class TestCheckInverterReachable:
     def test_unreachable(self):
         """Returns False when connection is refused."""
         with patch(
-            "exports.webserver.socket.create_connection",
+            "sungather.exports.webserver.socket.create_connection",
             side_effect=OSError,
         ):
             assert check_inverter_reachable("192.0.2.100", 502) is False
@@ -178,7 +178,7 @@ class TestCheckInverterReachable:
     def test_timeout(self):
         """Returns False on connection timeout."""
         with patch(
-            "exports.webserver.socket.create_connection",
+            "sungather.exports.webserver.socket.create_connection",
             side_effect=TimeoutError,
         ):
             assert check_inverter_reachable("192.0.2.100", 502) is False
@@ -215,7 +215,7 @@ class TestConfigureStoresInverterInfo:
         }
         inverter.client_config = {"host": "192.0.2.10", "port": 502}
         config = {"port": 8099, "enabled": True, "name": "webserver"}
-        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+        with patch("sungather.exports.webserver.HTTPServer"), patch("sungather.exports.webserver.Thread"):
             wserver.configure(config, inverter)
         assert export_webserver.scan_interval == 60
         assert export_webserver.inverter_host == "192.0.2.10"
@@ -231,7 +231,7 @@ class TestConfigureStoresInverterInfo:
         }
         inverter.client_config = {"host": "192.0.2.10", "port": 502}
         config = {"port": 8099, "enabled": True, "name": "webserver"}
-        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+        with patch("sungather.exports.webserver.HTTPServer"), patch("sungather.exports.webserver.Thread"):
             wserver.configure(config, inverter)
         assert export_webserver.inverter_port == 8082
 
@@ -245,6 +245,6 @@ class TestConfigureStoresInverterInfo:
         }
         inverter.client_config = {"host": "192.0.2.10", "port": 502}
         config = {"port": 8099, "enabled": True, "name": "webserver"}
-        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+        with patch("sungather.exports.webserver.HTTPServer"), patch("sungather.exports.webserver.Thread"):
             wserver.configure(config, inverter)
         assert export_webserver.inverter_port == 502

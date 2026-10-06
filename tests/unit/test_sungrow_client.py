@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, PropertyMock, patch
 
-from client.sungrow_client import SungrowClient
+from sungather.client.sungrow_client import SungrowClient
 
 
 def make_config(**overrides):
@@ -39,7 +39,7 @@ class TestSungrowClientInit:
 
 
 class TestSungrowClientConnect:
-    @patch("client.sungrow_client.ModbusTcpClient")
+    @patch("sungather.client.sungrow_client.ModbusTcpClient")
     def test_connect_modbus_passes_host_positionally(self, mock_client):
         """ModbusTcpClient must receive host as first positional arg."""
         mock_instance = MagicMock()
@@ -56,7 +56,7 @@ class TestSungrowClientConnect:
         assert "host" not in kwargs
         assert result is True
 
-    @patch("client.sungrow_client.SungrowModbusTcpClient")
+    @patch("sungather.client.sungrow_client.SungrowModbusTcpClient")
     def test_connect_sungrow_passes_host_positionally(self, mock_client):
         """SungrowModbusTcpClient must also receive host positionally."""
         mock_instance = MagicMock()
@@ -73,7 +73,7 @@ class TestSungrowClientConnect:
         assert "host" not in kwargs
         assert result is True
 
-    @patch("client.sungrow_client.SungrowModbusWebClient")
+    @patch("sungather.client.sungrow_client.SungrowModbusWebClient")
     def test_connect_http_passes_host_as_keyword_and_overrides_port(self, mock_client):
         """SungrowModbusWebClient must receive host as keyword arg, port=8082."""
         mock_instance = MagicMock()

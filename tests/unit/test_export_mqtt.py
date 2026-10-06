@@ -9,7 +9,7 @@ from tests.inverter_stub import make_inverter
 def _fresh_mqtt_export():
     """Remove cached mqtt export module to allow re-import with different mocks."""
     for key in list(sys.modules.keys()):
-        if key in ("exports.mqtt", "paho", "paho.mqtt", "paho.mqtt.client"):
+        if key in ("sungather.exports.mqtt", "paho", "paho.mqtt", "paho.mqtt.client"):
             del sys.modules[key]
 
 
@@ -44,7 +44,7 @@ class TestConfigure:
                 "paho.mqtt.client": mock_paho_mqtt.client,
             },
         ):
-            from exports.mqtt import export_mqtt
+            from sungather.exports.mqtt import export_mqtt
 
             exporter = export_mqtt()
             inverter = make_inverter()
@@ -63,7 +63,7 @@ class TestConfigure:
                 "paho.mqtt.client": mock_paho_mqtt.client,
             },
         ):
-            from exports.mqtt import export_mqtt
+            from sungather.exports.mqtt import export_mqtt
 
             exporter = export_mqtt()
             inverter = make_inverter()
@@ -82,7 +82,7 @@ class TestConfigure:
                 "paho.mqtt.client": mock_paho_mqtt.client,
             },
         ):
-            from exports.mqtt import export_mqtt
+            from sungather.exports.mqtt import export_mqtt
 
             exporter = export_mqtt()
             inverter = make_inverter()
@@ -105,7 +105,7 @@ class TestPublish:
                 "paho.mqtt.client": mock_paho_mqtt.client,
             },
         ):
-            from exports.mqtt import export_mqtt
+            from sungather.exports.mqtt import export_mqtt
 
             exporter = export_mqtt()
             inverter = make_inverter()

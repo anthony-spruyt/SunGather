@@ -9,7 +9,7 @@ from typing import Any
 
 from pymodbus.client import ModbusTcpClient
 
-from version import __version__
+from sungather.version import __version__
 
 from .sungrow_modbus_tcp_client import SungrowModbusTcpClient
 from .sungrow_modbus_web_client import SungrowModbusWebClient

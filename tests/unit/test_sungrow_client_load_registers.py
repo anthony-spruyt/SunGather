@@ -1,9 +1,8 @@
-# tests/test_sungrow_client_load_registers.py
 """Characterization tests for SungrowClient.load_registers."""
 
 from unittest.mock import MagicMock
 
-from client.sungrow_client import SungrowClient
+from sungather.client.sungrow_client import SungrowClient
 
 
 def make_client(**overrides):

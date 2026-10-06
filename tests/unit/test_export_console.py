@@ -1,6 +1,6 @@
 """BDD tests for the console export module."""
 
-from exports.console import export_console
+from sungather.exports.console import export_console
 from tests.inverter_stub import make_inverter
 
 

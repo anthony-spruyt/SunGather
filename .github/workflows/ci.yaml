@@ -1,4 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
+# This file is automatically updated - do not modify directly
 
 name: "CI"
 on:
@@ -9,53 +10,26 @@ on:
     branches:
       - "main"
 permissions:
-  actions: "write"
-  contents: "write"
-  pull-requests: "write"
-  security-events: "write"
-  statuses: "write"
+  contents: "read"
 jobs:
   lint:
+    permissions:
+      actions: "write"
+      contents: "read"
+      security-events: "write"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
-    secrets: "inherit"
-  build-and-test:
-    name: "Build and test"
-    needs: "lint"
-    runs-on: "ubuntu-latest"
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: "Checkout"
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7
-
-      - name: "Set up Docker Buildx"
-        uses: "docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069" # v4
-
-      - name: "Build test image"
-        uses: "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc" # v7
-        with:
-          context: "."
-          file: "SunGather/Dockerfile"
-          target: "test"
-          push: false
-          load: true
-          tags: "sungather:test"
-          cache-from: "type=gha"
-
-      - name: "Run tests"
-        run: |
-          docker run --rm \
-            -w /opt/sungather \
-            -v "${{ github.workspace }}/tests:/opt/sungather/tests:ro" \
-            sungather:test \
-            /opt/virtualenv/bin/python -m pytest tests/ -v
-
+  image:
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_build-image.yaml@main"
+    with:
+      language: "python"
+      image: "sungather"
+      test-command: "docker run --rm --network none \"$IMAGE_REF\" /opt/virtualenv/bin/sungather -h"
   summary:
     needs:
       - "lint"
-      - "build-and-test"
+      - "image"
     if: "always()"
+    permissions:
+      actions: "read"
+      contents: "read"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"

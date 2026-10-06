@@ -1,24 +1,24 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
 # This file is automatically updated - do not modify directly
 
-name: "Release Please"
+name: "Rebuild Release"
 on:
-  push:
-    branches:
-      - "main"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to rebuild, without a leading v (e.g., 1.0.0)"
+        required: true
+        type: "string"
 permissions:
   contents: "write"
   packages: "write"
   id-token: "write"
   attestations: "write"
 jobs:
-  release:
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_release-please.yaml@main"
+  rebuild:
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_rebuild-release.yaml@main"
     with:
+      version: "${{ inputs.version }}"
       language: "python"
       image: "sungather"
       test-command: "docker run --rm --network none \"$IMAGE_REF\" /opt/virtualenv/bin/sungather -h"
-    secrets:
-      RELEASE_PLEASE_APP_CLIENT_ID: "${{ secrets.RELEASE_PLEASE_APP_CLIENT_ID }}"
-      RELEASE_PLEASE_APP_PRIVATE_KEY: "${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}"

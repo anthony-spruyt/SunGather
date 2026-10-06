@@ -1,10 +1,9 @@
-# tests/test_sungrow_client_scrape.py
 """Characterization tests for SungrowClient.scrape."""
 
 from datetime import datetime
 from unittest.mock import MagicMock
 
-from client.sungrow_client import SungrowClient
+from sungather.client.sungrow_client import SungrowClient
 
 
 def make_client(**overrides):

@@ -41,8 +41,8 @@ class TestConfigure:
         """configure() returns True when valid api key, sid, and parameters are provided."""
         response_text = "SG10KTL,SG10KTL,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0;0;1618"
         mock_response = _make_response(200, response_text)
-        with patch("exports.pvoutput.requests.post", return_value=mock_response) as mock_post:
-            from exports.pvoutput import export_pvoutput
+        with patch("sungather.exports.pvoutput.requests.post", return_value=mock_response) as mock_post:
+            from sungather.exports.pvoutput import export_pvoutput
 
             exporter = export_pvoutput()
             inverter = make_inverter()
@@ -52,8 +52,8 @@ class TestConfigure:
 
     def test_configure_returns_false_on_http_error(self):
         """configure() returns False when a requests exception is raised."""
-        with patch("exports.pvoutput.requests.post", side_effect=Exception("timeout")):
-            from exports.pvoutput import export_pvoutput
+        with patch("sungather.exports.pvoutput.requests.post", side_effect=Exception("timeout")):
+            from sungather.exports.pvoutput import export_pvoutput
 
             exporter = export_pvoutput()
             inverter = make_inverter()
@@ -80,10 +80,10 @@ class TestPublish:
 
         # Patch time.time so the interval check passes (last_publish=0, now >> interval*60)
         with (
-            patch("exports.pvoutput.requests.post", side_effect=post_side_effect),
-            patch("exports.pvoutput.time.time", return_value=99999),
+            patch("sungather.exports.pvoutput.requests.post", side_effect=post_side_effect),
+            patch("sungather.exports.pvoutput.time.time", return_value=99999),
         ):
-            from exports.pvoutput import export_pvoutput
+            from sungather.exports.pvoutput import export_pvoutput
 
             exporter = export_pvoutput()
             inverter = make_inverter()
