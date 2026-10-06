@@ -3,7 +3,8 @@ import logging
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-class export_influxdb(object):
+
+class export_influxdb:
     def __init__(self):
         self.client = None
         self.write_api = None
@@ -11,47 +12,45 @@ class export_influxdb(object):
     # Configure InfluxDB
     def configure(self, config, inverter):
         self.influxdb_config = {
-            'url': config.get('url', "http://localhost:8086"),
-            'token': config.get('token', None),
-            'username': config.get('username', None),
-            'password': config.get('password', None),
-            'org': config.get('org',None),
-            'bucket': config.get('bucket',None)
+            "url": config.get("url", "http://localhost:8086"),
+            "token": config.get("token", None),
+            "username": config.get("username", None),
+            "password": config.get("password", None),
+            "org": config.get("org", None),
+            "bucket": config.get("bucket", None),
         }
         self.influxdb_measurements = [{}]
-        self.influxdb_measurements.pop() # Remove null value from list
+        self.influxdb_measurements.pop()  # Remove null value from list
 
-        has_auth = (
-            self.influxdb_config['token']
-            or (self.influxdb_config['username'] and self.influxdb_config['password'])
+        has_auth = self.influxdb_config["token"] or (
+            self.influxdb_config["username"] and self.influxdb_config["password"]
         )
-        if not self.influxdb_config['org'] or not self.influxdb_config['bucket'] or not has_auth:
+        if not self.influxdb_config["org"] or not self.influxdb_config["bucket"] or not has_auth:
             logging.warning("InfluxDB: Please check configuration")
             return False
 
         try:
-            if self.influxdb_config['token']:
+            if self.influxdb_config["token"]:
                 self.client = influxdb_client.InfluxDBClient(
-                    url=self.influxdb_config['url'],
-                    token=self.influxdb_config['token'],
-                    org=self.influxdb_config['org']
+                    url=self.influxdb_config["url"],
+                    token=self.influxdb_config["token"],
+                    org=self.influxdb_config["org"],
                 )
-            elif config.get('username',False) and config.get('password',False):
+            elif config.get("username", False) and config.get("password", False):
                 self.client = influxdb_client.InfluxDBClient(
-                    url=self.influxdb_config['url'],
+                    url=self.influxdb_config["url"],
                     token=f"{self.influxdb_config['username']}:{self.influxdb_config['password']}",
-                    org=self.influxdb_config['org']
+                    org=self.influxdb_config["org"],
                 )
 
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except Exception as err:
             logging.error("InfluxDB: Error: %s", err)
             return False
 
-        for measurement in config.get('measurements'):
-            if not inverter.validateRegister(measurement['register']):
+        for measurement in config.get("measurements"):
+            if not inverter.validateRegister(measurement["register"]):
                 logging.error(
-                    "InfluxDB: Configured to use %s but not configured to scrape this register",
-                    measurement['register']
+                    "InfluxDB: Configured to use %s but not configured to scrape this register", measurement["register"]
                 )
                 continue
             self.influxdb_measurements.append(measurement)
@@ -65,23 +64,21 @@ class export_influxdb(object):
         sequence = []
 
         for measurement in self.influxdb_measurements:
-            register = measurement['register']
+            register = measurement["register"]
             if not inverter.validateLatestScrape(register):
-                logging.error(
-                    "InfluxDB: Skipped collecting data, %s missing from last scrape", register
-                )
+                logging.error("InfluxDB: Skipped collecting data, %s missing from last scrape", register)
                 return False
             raw = inverter.getRegisterValue(register)
             value = raw if isinstance(raw, str) else float(raw)
             sequence.append(
-                influxdb_client.Point(measurement['point'])
+                influxdb_client.Point(measurement["point"])
                 .tag("inverter", inverter.getInverterModel(True))
                 .field(register, value)
             )
 
         try:
-            self.write_api.write(self.influxdb_config['bucket'], self.client.org, sequence)
-        except Exception as err:  # pylint: disable=broad-exception-caught
+            self.write_api.write(self.influxdb_config["bucket"], self.client.org, sequence)
+        except Exception as err:
             logging.error("InfluxDB: %s", err)
 
         logging.info("InfluxDB: Published")

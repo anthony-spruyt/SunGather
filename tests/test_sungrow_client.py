@@ -1,22 +1,22 @@
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 from client.sungrow_client import SungrowClient
 
 
 def make_config(**overrides):
     defaults = {
-        'host': '192.0.2.1',
-        'port': 502,
-        'timeout': 10,
-        'retries': 3,
-        'slave': 0x01,
-        'scan_interval': 30,
-        'connection': 'modbus',
-        'model': None,
-        'serial_number': None,
-        'level': 1,
-        'use_local_time': False,
-        'smart_meter': False,
+        "host": "192.0.2.1",
+        "port": 502,
+        "timeout": 10,
+        "retries": 3,
+        "slave": 0x01,
+        "scan_interval": 30,
+        "connection": "modbus",
+        "model": None,
+        "serial_number": None,
+        "level": 1,
+        "use_local_time": False,
+        "smart_meter": False,
     }
     defaults.update(overrides)
     return defaults
@@ -27,68 +27,68 @@ class TestSungrowClientInit:
         """Init should store client and inverter config from input."""
         config = make_config()
         client = SungrowClient(config)
-        assert client.client_config['host'] == '192.0.2.1'
-        assert client.client_config['port'] == 502
-        assert client.inverter_config['connection'] == 'modbus'
+        assert client.client_config["host"] == "192.0.2.1"
+        assert client.client_config["port"] == 502
+        assert client.inverter_config["connection"] == "modbus"
 
     def test_init_does_not_include_retry_on_empty(self):
         """pymodbus 3.x removed RetryOnEmpty -- should not be in config."""
         config = make_config()
         client = SungrowClient(config)
-        assert 'RetryOnEmpty' not in client.client_config
+        assert "RetryOnEmpty" not in client.client_config
 
 
 class TestSungrowClientConnect:
-    @patch('client.sungrow_client.ModbusTcpClient')
-    def test_connect_modbus_passes_host_positionally(self, MockClient):
+    @patch("client.sungrow_client.ModbusTcpClient")
+    def test_connect_modbus_passes_host_positionally(self, mock_client):
         """ModbusTcpClient must receive host as first positional arg."""
         mock_instance = MagicMock()
         mock_instance.connect.return_value = True
-        MockClient.return_value = mock_instance
+        mock_client.return_value = mock_instance
 
-        config = make_config(connection='modbus')
+        config = make_config(connection="modbus")
         client = SungrowClient(config)
         result = client.connect()
 
-        MockClient.assert_called_once()
-        args, kwargs = MockClient.call_args
-        assert args[0] == '192.0.2.1'
-        assert 'host' not in kwargs
+        mock_client.assert_called_once()
+        args, kwargs = mock_client.call_args
+        assert args[0] == "192.0.2.1"
+        assert "host" not in kwargs
         assert result is True
 
-    @patch('client.sungrow_client.SungrowModbusTcpClient')
-    def test_connect_sungrow_passes_host_positionally(self, MockClient):
+    @patch("client.sungrow_client.SungrowModbusTcpClient")
+    def test_connect_sungrow_passes_host_positionally(self, mock_client):
         """SungrowModbusTcpClient must also receive host positionally."""
         mock_instance = MagicMock()
         mock_instance.connect.return_value = True
-        MockClient.return_value = mock_instance
+        mock_client.return_value = mock_instance
 
-        config = make_config(connection='sungrow')
+        config = make_config(connection="sungrow")
         client = SungrowClient(config)
         result = client.connect()
 
-        MockClient.assert_called_once()
-        args, kwargs = MockClient.call_args
-        assert args[0] == '192.0.2.1'
-        assert 'host' not in kwargs
+        mock_client.assert_called_once()
+        args, kwargs = mock_client.call_args
+        assert args[0] == "192.0.2.1"
+        assert "host" not in kwargs
         assert result is True
 
-    @patch('client.sungrow_client.SungrowModbusWebClient')
-    def test_connect_http_passes_host_as_keyword_and_overrides_port(self, MockClient):
+    @patch("client.sungrow_client.SungrowModbusWebClient")
+    def test_connect_http_passes_host_as_keyword_and_overrides_port(self, mock_client):
         """SungrowModbusWebClient must receive host as keyword arg, port=8082."""
         mock_instance = MagicMock()
         mock_instance.connect.return_value = True
-        MockClient.return_value = mock_instance
+        mock_client.return_value = mock_instance
 
-        config = make_config(connection='http')
+        config = make_config(connection="http")
         client = SungrowClient(config)
         result = client.connect()
 
-        MockClient.assert_called_once()
-        args, kwargs = MockClient.call_args
+        mock_client.assert_called_once()
+        args, kwargs = mock_client.call_args
         assert args == ()
-        assert kwargs['host'] == '192.0.2.1'
-        assert kwargs['port'] == 8082
+        assert kwargs["host"] == "192.0.2.1"
+        assert kwargs["port"] == 8082
         assert result is True
 
 
@@ -118,14 +118,10 @@ class TestSungrowClientLoadRegisters:
         mock_response.registers = [100]
         client.client.read_input_registers.return_value = mock_response
 
-        client.registers = [
-            {'name': 'test_reg', 'type': 'read', 'address': 1, 'datatype': 'U16'}
-        ]
-        client.load_registers('read', 0, 1)
+        client.registers = [{"name": "test_reg", "type": "read", "address": 1, "datatype": "U16"}]
+        client.load_registers("read", 0, 1)
 
-        client.client.read_input_registers.assert_called_once_with(
-            0, count=1, device_id=0x01
-        )
+        client.client.read_input_registers.assert_called_once_with(0, count=1, device_id=0x01)
 
     def test_load_registers_hold_uses_device_id_param(self):
         """load_registers for hold type should also use device_id=."""
@@ -137,12 +133,7 @@ class TestSungrowClientLoadRegisters:
         mock_response.registers = [200]
         client.client.read_holding_registers.return_value = mock_response
 
-        client.registers = [
-            {'name': 'test_hold', 'type': 'hold', 'address': 1,
-             'datatype': 'U16'}
-        ]
-        client.load_registers('hold', 0, 1)
+        client.registers = [{"name": "test_hold", "type": "hold", "address": 1, "datatype": "U16"}]
+        client.load_registers("hold", 0, 1)
 
-        client.client.read_holding_registers.assert_called_once_with(
-            0, count=1, device_id=0x01
-        )
+        client.client.read_holding_registers.assert_called_once_with(0, count=1, device_id=0x01)

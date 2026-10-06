@@ -1,7 +1,8 @@
 """Tests for log injection sanitization in webserver export."""
+
 import logging
-from io import BytesIO
 from http.server import HTTPServer
+from io import BytesIO
 from unittest.mock import MagicMock
 
 import pytest
