@@ -39,7 +39,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
         filtered = {k: v for k, v in kwargs.items() if k in self._ACCEPTED_KWARGS}
         super().__init__(host, port=port, **filtered)
 
-        # WiNet dongle serves only plain ws on the LAN
+        # WiNet's ws port 8082 has no TLS; this client doesn't support newer firmware's wss:443
         self.ws_endpoint = "ws://" + str(self.dev_host) + ":" + str(self.ws_port) + "/ws/home/overview"  # NOSONAR
         self.ws_token = ""
         self.dev_type = ""
@@ -124,7 +124,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
 
         logging.debug("param_type: %s, start_address: %s, count: %s, dev_id: %s", param_type, address, count, dev_id)
         url = (
-            f"http://{self.dev_host!s}/device/getParam?"  # NOSONAR - WiNet dongle serves only plain http on the LAN
+            f"http://{self.dev_host!s}/device/getParam?"  # NOSONAR - client speaks only WiNet's legacy plain-http API
             f"dev_id={dev_id}&dev_type={self.dev_type!s}"
             f"&dev_code={self.dev_code!s}&type=3"
             f"&param_addr={address}&param_num={count}"
