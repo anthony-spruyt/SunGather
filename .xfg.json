@@ -29,6 +29,9 @@
         ".github/CODEOWNERS",
         ".github/renovate.json5",
         ".github/workflows/ci.yaml",
+        ".github/workflows/container-retention.yaml",
+        ".github/workflows/rebuild-release.yaml",
+        ".github/workflows/release-please.yaml",
         ".github/workflows/trivy-scan.yaml",
         ".gitignore",
         ".gitleaks.toml",
@@ -53,6 +56,7 @@
         ".yamllint.yml",
         "LICENSE",
         "lint.sh",
+        "ruff-base.toml",
         "trivy-mega-linter.yaml"
       ]
     }
