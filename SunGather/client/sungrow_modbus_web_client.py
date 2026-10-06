@@ -40,7 +40,8 @@ class SungrowModbusWebClient(ModbusTcpClient):
         filtered = {k: v for k, v in kwargs.items() if k in self._ACCEPTED_KWARGS}
         super().__init__(host, port=port, **filtered)
 
-        self.ws_endpoint = "ws://" + str(self.dev_host) + ":" + str(self.ws_port) + "/ws/home/overview"
+        # The WiNet dongle serves only plain ws and http on the local network
+        self.ws_endpoint = "ws://" + str(self.dev_host) + ":" + str(self.ws_port) + "/ws/home/overview"  # NOSONAR
         self.ws_token = ""
         self.dev_type = ""
         self.dev_code = ""
@@ -124,7 +125,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
 
         logging.debug("param_type: %s, start_address: %s, count: %s, dev_id: %s", param_type, address, count, dev_id)
         url = (
-            f"http://{self.dev_host!s}/device/getParam?"
+            f"http://{self.dev_host!s}/device/getParam?"  # NOSONAR
             f"dev_id={dev_id}&dev_type={self.dev_type!s}"
             f"&dev_code={self.dev_code!s}&type=3"
             f"&param_addr={address}&param_num={count}"
