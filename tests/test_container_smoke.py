@@ -6,19 +6,19 @@ import tempfile
 
 import pytest
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-CONFIG_TEMPLATE = os.path.join(REPO_ROOT, 'tests', 'fixtures', 'config-smoke.yaml')
-IMAGE_TAG = 'sungather:smoke-test'
-INVERTER_HOST = os.environ.get('SUNGATHER_TEST_INVERTER_HOST', '')
-INVERTER_PORT = int(os.environ.get('SUNGATHER_TEST_INVERTER_PORT', '502'))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+CONFIG_TEMPLATE = os.path.join(REPO_ROOT, "tests", "fixtures", "config-smoke.yaml")
+IMAGE_TAG = "sungather:smoke-test"
+INVERTER_HOST = os.environ.get("SUNGATHER_TEST_INVERTER_HOST", "")
+INVERTER_PORT = int(os.environ.get("SUNGATHER_TEST_INVERTER_PORT", "502"))
 
 
 def _docker_available():
     """Check Docker CLI exists and daemon is running."""
-    if not shutil.which('docker'):
+    if not shutil.which("docker"):
         return False
     result = subprocess.run(
-        ['docker', 'info'],
+        ["docker", "info"],
         capture_output=True,
         timeout=10,
         check=False,
@@ -39,15 +39,9 @@ def _inverter_reachable():
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(not _docker_available(), reason='Docker not available')
-@pytest.mark.skipif(
-    not _inverter_reachable(),
-    reason='Inverter not reachable at SUNGATHER_TEST_INVERTER_HOST'
-)
-@pytest.mark.skipif(
-    not INVERTER_HOST,
-    reason='SUNGATHER_TEST_INVERTER_HOST not set'
-)
+@pytest.mark.skipif(not _docker_available(), reason="Docker not available")
+@pytest.mark.skipif(not _inverter_reachable(), reason="Inverter not reachable at SUNGATHER_TEST_INVERTER_HOST")
+@pytest.mark.skipif(not INVERTER_HOST, reason="SUNGATHER_TEST_INVERTER_HOST not set")
 class TestContainerSmoke:
     """Smoke test: build prod image, run --runonce, assert clean exit with data."""
 
@@ -55,32 +49,38 @@ class TestContainerSmoke:
     def setup_class(cls):
         """Build the production Docker image and run one scrape cycle."""
         build = subprocess.run(
-            ['docker', 'build', '-t', IMAGE_TAG, '.'],
+            ["docker", "build", "-t", IMAGE_TAG, "."],
             capture_output=True,
             text=True,
             cwd=REPO_ROOT,
             timeout=300,
             check=False,
         )
-        assert build.returncode == 0, (
-            f"Docker build failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
-        )
+        assert build.returncode == 0, f"Docker build failed:\nstdout: {build.stdout}\nstderr: {build.stderr}"
 
-        with open(CONFIG_TEMPLATE, encoding='utf-8') as template:
-            config = template.read().replace('__INVERTER_HOST__', INVERTER_HOST)
+        with open(CONFIG_TEMPLATE, encoding="utf-8") as template:
+            config = template.read().replace("__INVERTER_HOST__", INVERTER_HOST)
 
         cls._config_dir = tempfile.mkdtemp()
-        config_path = os.path.join(cls._config_dir, 'config.yaml')
-        with open(config_path, 'w', encoding='utf-8') as rendered:
+        config_path = os.path.join(cls._config_dir, "config.yaml")
+        with open(config_path, "w", encoding="utf-8") as rendered:
             rendered.write(config)
 
         cls.result = subprocess.run(
             [
-                'docker', 'run', '--rm', '--network', 'host',
-                '-v', f'{config_path}:/config/config.yaml:ro',
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                "host",
+                "-v",
+                f"{config_path}:/config/config.yaml:ro",
                 IMAGE_TAG,
-                '/opt/virtualenv/bin/python', 'sungather.py',
-                '-c', '/config/config.yaml', '--runonce',
+                "/opt/virtualenv/bin/python",
+                "sungather.py",
+                "-c",
+                "/config/config.yaml",
+                "--runonce",
             ],
             capture_output=True,
             text=True,
@@ -97,20 +97,16 @@ class TestContainerSmoke:
     def test_exits_cleanly(self):
         """Container should exit 0 after one scrape cycle."""
         assert self.result.returncode == 0, (
-            f"Container exited with code {self.result.returncode}:\n"
-            f"{self.combined_output}"
+            f"Container exited with code {self.result.returncode}:\n{self.combined_output}"
         )
 
     def test_no_tracebacks(self):
         """Container output should not contain Python tracebacks."""
-        assert 'Traceback' not in self.combined_output, (
-            f"Traceback found in container output:\n{self.combined_output}"
-        )
+        assert "Traceback" not in self.combined_output, f"Traceback found in container output:\n{self.combined_output}"
 
     def test_scrape_succeeded(self):
         """Container should have scraped registers and logged them to console."""
-        has_logged = 'Logged' in self.combined_output
-        has_registers = 'registers to Console' in self.combined_output
-        assert has_logged and has_registers, (
-            f"No evidence of successful scrape in output:\n{self.combined_output}"
-        )
+        has_logged = "Logged" in self.combined_output
+        has_registers = "registers to Console" in self.combined_output
+        assert has_logged, f"No evidence of successful scrape in output:\n{self.combined_output}"
+        assert has_registers, f"No evidence of successful scrape in output:\n{self.combined_output}"
