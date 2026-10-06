@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import getopt
 import importlib
 import logging
@@ -7,11 +5,12 @@ import logging.handlers
 import signal
 import sys
 import time
+from pathlib import Path
 
 import yaml
 
-from client.sungrow_client import SungrowClient
-from version import __version__
+from sungather.client.sungrow_client import SungrowClient
+from sungather.version import __version__
 
 
 def _load_config(configfilename, registersfilename):
@@ -93,7 +92,7 @@ def _load_exports(configfile, inverter):
     for export in configfile.get("exports"):
         try:
             if export.get("enabled", False):
-                export_load = importlib.import_module("exports." + export.get("name"))
+                export_load = importlib.import_module("sungather.exports." + export.get("name"))
                 logging.info("Loading Export: exports %s", export.get("name"))
                 exports.append(getattr(export_load, "export_" + export.get("name"))())
                 _retval = exports[-1].configure(export, inverter)
@@ -148,7 +147,7 @@ def _parse_args():
     """Parse command-line arguments and return (configfilename, registersfilename,
     logfolder, loglevel, runonce)."""
     configfilename = "config.yaml"
-    registersfilename = "registers-sungrow.yaml"
+    registersfilename = str(Path(__file__).with_name("registers-sungrow.yaml"))
     logfolder = ""
     runonce = False
     loglevel = None
@@ -162,7 +161,7 @@ def _parse_args():
         if opt == "-h":
             print(f"\nSunGather {__version__}")
             print("\nhttps://sungather.app")
-            print("usage: python3 sungather.py [options]")
+            print("usage: sungather [options]")
             print("\nCommandling arguments override any config file settings")
             print("Options and arguments:")
             print("-c config.yaml             : Specify config file.")
@@ -174,7 +173,7 @@ def _parse_args():
             print("--runonce                  : Run once then exit")
             print("-h                         : print this help message and exit (also --help)")
             print("\nExample:")
-            print("python3 sungather.py -c /full/path/config.yaml\n")
+            print("sungather -c /full/path/config.yaml\n")
             sys.exit()
         elif opt == "-c":
             configfilename = arg
@@ -247,5 +246,3 @@ logger.addHandler(ch)
 
 if __name__ == "__main__":
     main()
-
-sys.exit()

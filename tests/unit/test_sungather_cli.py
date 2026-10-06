@@ -1,7 +1,7 @@
 import ast
 import os
 
-SUNGATHER_PATH = os.path.join(os.path.dirname(__file__), "..", "SunGather", "sungather.py")
+SUNGATHER_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "src", "sungather", "sungather.py")
 
 
 def _parse_sungather():

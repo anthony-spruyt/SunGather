@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from client.sungrow_modbus_web_client import SungrowModbusWebClient
+from sungather.client.sungrow_modbus_web_client import SungrowModbusWebClient
 
 
 class TestSungrowModbusWebClientInit:
@@ -19,7 +19,7 @@ class TestSungrowModbusWebClientInit:
 
 
 class TestWebClientConnect:
-    @patch("client.sungrow_modbus_web_client.create_connection")
+    @patch("sungather.client.sungrow_modbus_web_client.create_connection")
     def test_connect_returns_true_if_already_has_token(self, mock_ws):
         """If token already exists, connect should return True without reconnecting."""
         client = SungrowModbusWebClient(host="192.0.2.1")

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from exports.webserver import MyServer, export_webserver, sanitize_for_log
+from sungather.exports.webserver import MyServer, export_webserver, sanitize_for_log
 
 
 @pytest.fixture(autouse=True)

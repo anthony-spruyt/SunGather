@@ -7,7 +7,7 @@ from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 from websocket import create_connection
 
-from version import __version__
+from sungather.version import __version__
 
 
 class SungrowModbusWebClient(ModbusTcpClient):

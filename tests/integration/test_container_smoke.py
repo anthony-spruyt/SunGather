@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CONFIG_TEMPLATE = os.path.join(REPO_ROOT, "tests", "fixtures", "config-smoke.yaml")
 IMAGE_TAG = "sungather:smoke-test"
 INVERTER_HOST = os.environ.get("SUNGATHER_TEST_INVERTER_HOST", "")

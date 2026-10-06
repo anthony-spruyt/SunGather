@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from client.sungrow_modbus_tcp_client import SungrowModbusTcpClient
+from sungather.client.sungrow_modbus_tcp_client import SungrowModbusTcpClient
 
 
 class TestSungrowModbusTcpClientInit:
@@ -10,7 +10,7 @@ class TestSungrowModbusTcpClientInit:
 
         assert issubclass(SungrowModbusTcpClient, ModbusTcpClient)
 
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
     def test_init_sets_cipher_off(self, mock_init):
         """Init should start with cipher disabled."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
@@ -21,7 +21,7 @@ class TestSungrowModbusTcpClientInit:
 
 
 class TestEncryptionSetupRestore:
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
     def test_setup_enables_cipher_flag(self, mock_init):
         """After _setup(), _use_cipher should be True."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
@@ -36,7 +36,7 @@ class TestEncryptionSetupRestore:
         assert client._key is not None
         assert client._aes_ecb is not None
 
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
     def test_restore_disables_cipher_flag(self, mock_init):
         """After _restore(), _use_cipher should be False."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
@@ -53,7 +53,7 @@ class TestEncryptionSetupRestore:
         assert client._key is None
         assert client._aes_ecb is None
 
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
     def test_send_delegates_to_cipher_when_enabled(self, mock_init):
         """send() should call _send_cipher when cipher is active."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
@@ -64,8 +64,8 @@ class TestEncryptionSetupRestore:
         client._send_cipher.assert_called_once()
         assert result == 10
 
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
-    @patch("client.sungrow_modbus_tcp_client.ModbusTcpClient.send", return_value=12)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.send", return_value=12)
     def test_send_delegates_to_parent_when_cipher_off(self, mock_send, mock_init):
         """send() should call parent send when cipher is inactive."""
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)

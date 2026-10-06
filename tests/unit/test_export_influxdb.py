@@ -44,7 +44,7 @@ class TestConfigure:
                 "influxdb_client.client.write_api": mock_module.client.write_api,
             },
         ):
-            from exports.influxdb import export_influxdb
+            from sungather.exports.influxdb import export_influxdb
 
             exporter = export_influxdb()
             inverter = make_inverter()
@@ -63,7 +63,7 @@ class TestConfigure:
                 "influxdb_client.client.write_api": mock_module.client.write_api,
             },
         ):
-            from exports.influxdb import export_influxdb
+            from sungather.exports.influxdb import export_influxdb
 
             exporter = export_influxdb()
             inverter = make_inverter()
@@ -83,7 +83,7 @@ class TestPublish:
                 "influxdb_client.client.write_api": mock_module.client.write_api,
             },
         ):
-            from exports.influxdb import export_influxdb
+            from sungather.exports.influxdb import export_influxdb
 
             exporter = export_influxdb()
             inverter = make_inverter()
@@ -101,7 +101,7 @@ class TestPublish:
                 "influxdb_client.client.write_api": mock_module.client.write_api,
             },
         ):
-            from exports.influxdb import export_influxdb
+            from sungather.exports.influxdb import export_influxdb
 
             exporter = export_influxdb()
             inverter = make_inverter()
@@ -122,7 +122,7 @@ class TestPublish:
                 "influxdb_client.client.write_api": mock_module.client.write_api,
             },
         ):
-            from exports.influxdb import export_influxdb
+            from sungather.exports.influxdb import export_influxdb
 
             exporter = export_influxdb()
             inverter = make_inverter()

@@ -1,6 +1,6 @@
 def test_vendored_client_exposes_expected_api():
     """Vendored client package should expose all required methods."""
-    from client.sungrow_client import SungrowClient
+    from sungather.client.sungrow_client import SungrowClient
 
     assert SungrowClient is not None
     assert hasattr(SungrowClient, "checkConnection")
@@ -20,7 +20,7 @@ def test_sungather_calls_sungrow_client_as_class_not_module_attr():
     import ast
     import os
 
-    sungather_path = os.path.join(os.path.dirname(__file__), "..", "SunGather", "sungather.py")
+    sungather_path = os.path.join(os.path.dirname(__file__), "..", "..", "src", "sungather", "sungather.py")
     with open(sungather_path, encoding="utf-8") as f:
         tree = ast.parse(f.read())
 
