@@ -17,7 +17,6 @@ permissions:
 jobs:
   lint:
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
-    secrets: "inherit"
   build-and-test:
     name: "Build and test"
     needs: "lint"
