@@ -79,8 +79,6 @@ class TestEncryptionSetupRestore:
     @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
     def test_send_cipher_pads_with_0xff_and_encrypts(self, mock_init):
         """_send_cipher() should prefix a crypto header and AES-encrypt the 0xFF-padded frame."""
-        from Cryptodome.Cipher import AES
-
         client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
         client._priv_key = b"Grow#0*2Sun68CbE"
         client._pub_key = b"\x01" * 16
@@ -93,7 +91,7 @@ class TestEncryptionSetupRestore:
 
         sent = mock_send.call_args.args[0]
         assert sent[:4] == bytes([1, 0, 12, 4])
-        plain = AES.new(client._key, AES.MODE_ECB).decrypt(sent[4:])
+        plain = client._aes_ecb.decrypt(sent[4:])
         assert plain == b"\x68\x68" + request[2:] + b"\xff" * 4
         assert client._transactionID == request[:2]
         assert result == len(request)
