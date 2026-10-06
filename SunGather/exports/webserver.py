@@ -4,23 +4,17 @@ import json
 import logging
 import socket
 import urllib
-
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from urllib.parse import parse_qs, urlparse
 
-from version import __version__  # pylint: disable=import-error
+from version import __version__
 
 
 def sanitize_for_log(value):
     """Remove control characters to prevent log injection."""
-    return (
-        str(value)
-        .replace("\r\n", " ")
-        .replace("\n", " ")
-        .replace("\r", " ")
-    )
+    return str(value).replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
 
 
 def _build_config_rows(items):
@@ -38,7 +32,7 @@ def _build_config_rows(items):
     return rows
 
 
-class ExportWebserver(object):
+class ExportWebserver:
     """Webserver export plugin — serves data and health endpoint."""
 
     html_body = "Pending Data Retrieval"
@@ -53,31 +47,21 @@ class ExportWebserver(object):
 
     def configure(self, config, inverter):
         """Set up the HTTP server and store inverter config."""
-        ExportWebserver.scan_interval = (
-            inverter.inverter_config['scan_interval']
-        )
-        ExportWebserver.inverter_host = (
-            inverter.client_config.get('host')
-        )
+        ExportWebserver.scan_interval = inverter.inverter_config["scan_interval"]
+        ExportWebserver.inverter_host = inverter.client_config.get("host")
         # HTTP mode overrides port to 8082 inside SungrowClient.connect(),
         # so use that for the reachability check instead of the config port.
-        if inverter.inverter_config.get('connection') == 'http':
+        if inverter.inverter_config.get("connection") == "http":
             ExportWebserver.inverter_port = 8082
         else:
-            ExportWebserver.inverter_port = (
-                inverter.client_config.get('port', 502)
-            )
+            ExportWebserver.inverter_port = inverter.client_config.get("port", 502)
         try:
-            self.web_server = HTTPServer(
-                ('', config.get('port', 8080)), MyServer
-            )
-            self.server_thread = Thread(
-                target=self.web_server.serve_forever
-            )
+            self.web_server = HTTPServer(("", config.get("port", 8080)), MyServer)
+            self.server_thread = Thread(target=self.web_server.serve_forever)
             self.server_thread.daemon = True
             self.server_thread.start()
             logging.info("Webserver: Configured")
-        except Exception:  # pylint: disable=broad-exception-caught
+        except Exception:
             logging.exception("Webserver: Error during startup")
             return False
         config_body = (
@@ -89,16 +73,9 @@ class ExportWebserver(object):
             "<table><tr><th>Option</th><th>Setting</th>"
             "<th>Update?</th></tr>"
         )
-        config_body += _build_config_rows(
-            inverter.client_config.items()
-        )
-        config_body += _build_config_rows(
-            inverter.inverter_config.items()
-        )
-        config_body += (
-            "</table>Currently ReadOnly, "
-            "No save function yet :(</form>"
-        )
+        config_body += _build_config_rows(inverter.client_config.items())
+        config_body += _build_config_rows(inverter.inverter_config.items())
+        config_body += "</table>Currently ReadOnly, No save function yet :(</form>"
         ExportWebserver.config = config_body
         return True
 
@@ -117,22 +94,12 @@ class ExportWebserver(object):
             '<a href="https://github.com/anthony-spruyt/SunGather">'
             "https://github.com/anthony-spruyt/SunGather</a></h4></p>"
         )
-        main_body += (
-            "<table><th>Address</th>"
-            "<tr><th>Register</th><th>Value</th></tr>"
-        )
+        main_body += "<table><th>Address</th><tr><th>Register</th><th>Value</th></tr>"
         for register, value in inverter.latest_scrape.items():
             addr = str(inverter.getRegisterAddress(register))
             unit = str(inverter.getRegisterUnit(register))
-            main_body += (
-                f"<tr><td>{addr}</td>"
-                f"<td>{register}</td>"
-                f"<td>{value} {unit}</td></tr>"
-            )
-            metrics_body += (
-                f'{register}{{address="{addr}", '
-                f'unit="{unit}"}} {value}\n'
-            )
+            main_body += f"<tr><td>{addr}</td><td>{register}</td><td>{value} {unit}</td></tr>"
+            metrics_body += f'{register}{{address="{addr}", unit="{unit}"}} {value}\n'
             json_array["registers"][addr] = {
                 "register": str(register),
                 "value": str(value),
@@ -141,10 +108,7 @@ class ExportWebserver(object):
         total = len(inverter.latest_scrape)
         main_body += f"</table><p>Total {total} registers"
 
-        main_body += (
-            "</p></p><table>"
-            "<tr><th>Configuration</th><th>Value</th></tr>"
-        )
+        main_body += "</p></p><table><tr><th>Configuration</th><th>Value</th></tr>"
         for setting, value in inverter.client_config.items():
             s, v = str(setting), str(value)
             main_body += f"<tr><td>{s}</td><td>{v}</td></tr>"
@@ -253,42 +217,35 @@ _CSS = (
 class MyServer(BaseHTTPRequestHandler):
     """HTTP request handler for SunGather web interface."""
 
-    def do_GET(self):  # pylint: disable=invalid-name
+    def do_GET(self):
         """Handle GET requests."""
-        if self.path == '/health':
+        if self.path == "/health":
             _serve_health(self)
             return
-        if self.path.startswith('/metrics'):
+        if self.path.startswith("/metrics"):
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.end_headers()
-            self.wfile.write(
-                ExportWebserver.metrics.encode("utf-8")
-            )
-        elif self.path.startswith('/config'):
+            self.wfile.write(ExportWebserver.metrics.encode("utf-8"))
+        elif self.path.startswith("/config"):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(
-                ExportWebserver.config.encode("utf-8")
-            )
+            self.wfile.write(ExportWebserver.config.encode("utf-8"))
             parsed_data = parse_qs(urlparse(self.path).query)
             logging.info(sanitize_for_log(parsed_data))
-        elif self.path.startswith('/json'):
+        elif self.path.startswith("/json"):
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(
-                ExportWebserver.json.encode("utf-8")
-            )
+            self.wfile.write(ExportWebserver.json.encode("utf-8"))
         else:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
             parts = [
                 "<html><head><title>SunGather</title>",
-                "<meta charset='UTF-8'>"
-                "<meta http-equiv='refresh' content='15'>",
+                "<meta charset='UTF-8'><meta http-equiv='refresh' content='15'>",
                 _CSS,
                 "</head><body>",
                 ExportWebserver.main,
@@ -297,14 +254,12 @@ class MyServer(BaseHTTPRequestHandler):
             for part in parts:
                 self.wfile.write(part.encode("utf-8"))
 
-    def do_POST(self):  # pylint: disable=invalid-name
+    def do_POST(self):
         """Handle POST requests."""
-        length = int(self.headers['Content-Length'])
-        post_data = urllib.parse.parse_qs(
-            self.rfile.read(length).decode('utf-8')
-        )
+        length = int(self.headers["Content-Length"])
+        post_data = urllib.parse.parse_qs(self.rfile.read(length).decode("utf-8"))
         logging.info(sanitize_for_log(post_data))
         self.wfile.write(json.dumps(post_data).encode("utf-8"))
 
-    def log_message(self, format, *args):  # pylint: disable=redefined-builtin
+    def log_message(self, format, *args):  # noqa: A002
         """Suppress default HTTP logging."""

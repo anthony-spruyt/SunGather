@@ -1,6 +1,6 @@
 """BDD tests for the console export module."""
-from exports.console import export_console
 
+from exports.console import export_console
 from tests.inverter_stub import make_inverter
 
 
@@ -22,10 +22,10 @@ class TestPublish:
         captured = capsys.readouterr()
         assert result is True
         # Header row should be in output
-        assert 'Address' in captured.out
-        assert 'Register' in captured.out
+        assert "Address" in captured.out
+        assert "Register" in captured.out
         # Register names from latest_scrape should appear
-        assert 'total_active_power' in captured.out
-        assert 'daily_power_yields' in captured.out
+        assert "total_active_power" in captured.out
+        assert "daily_power_yields" in captured.out
         # Summary line
-        assert 'Logged 2 registers' in captured.out
+        assert "Logged 2 registers" in captured.out

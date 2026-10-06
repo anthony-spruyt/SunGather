@@ -1,4 +1,4 @@
-class export_console(object):
+class export_console:
     def __init__(self):
         pass
 
@@ -22,8 +22,10 @@ class export_console(object):
         print(f"| {'Address':<7} | {'Register':<35} | {'Value':<20} |")
         print("+---------+-------------------------------------+----------------------+")
         for register, value in inverter.latest_scrape.items():
-            print(f"| {str(inverter.getRegisterAddress(register)):<7} | {str(register):<35}"
-                  f" | {str(value) + ' ' + str(inverter.getRegisterUnit(register)):<20} |")
+            print(
+                f"| {inverter.getRegisterAddress(register)!s:<7} | {register!s:<35}"
+                f" | {str(value) + ' ' + str(inverter.getRegisterUnit(register)):<20} |"
+            )
         print("+----------------------------------------------------------------------+")
         print(f"Logged {len(inverter.latest_scrape)} registers to Console")
 

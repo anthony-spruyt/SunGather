@@ -20,11 +20,11 @@ def _load_config(configfilename, registersfilename):
         with open(configfilename, encoding="utf-8") as configfh:
             configfile = yaml.safe_load(configfh)
         logging.info("Loaded config: %s", configfilename)
-    except Exception as err:  # pylint: disable=broad-exception-caught
+    except Exception as err:
         logging.error("Failed: Loading config: %s \n\t\t\t     %s", configfilename, err)
         sys.exit(1)
 
-    if not configfile.get('inverter'):
+    if not configfile.get("inverter"):
         logging.error("Failed Loading config, missing Inverter settings")
         sys.exit("Failed Loading config, missing Inverter settings")
 
@@ -32,8 +32,8 @@ def _load_config(configfilename, registersfilename):
         with open(registersfilename, encoding="utf-8") as regfh:
             registersfile = yaml.safe_load(regfh)
         logging.info("Loaded registers: %s", registersfilename)
-        logging.info("Registers file version: %s", registersfile.get('version', 'UNKNOWN'))
-    except Exception as err:  # pylint: disable=broad-exception-caught
+        logging.info("Registers file version: %s", registersfile.get("version", "UNKNOWN"))
+    except Exception as err:
         logging.error("Failed: Loading registers: %s  %s", registersfilename, err)
         sys.exit(f"Failed: Loading registers: {registersfilename} {err}")
 
@@ -43,19 +43,19 @@ def _load_config(configfilename, registersfilename):
 def _build_inverter_config(configfile):
     """Extract inverter config dict from the loaded config file."""
     return {
-        "host": configfile['inverter'].get('host', None),
-        "port": configfile['inverter'].get('port', 502),
-        "timeout": configfile['inverter'].get('timeout', 10),
-        "retries": configfile['inverter'].get('retries', 3),
-        "slave": configfile['inverter'].get('slave', 0x01),
-        "scan_interval": configfile['inverter'].get('scan_interval', 30),
-        "connection": configfile['inverter'].get('connection', "modbus"),
-        "model": configfile['inverter'].get('model', None),
-        "smart_meter": configfile['inverter'].get('smart_meter', False),
-        "use_local_time": configfile['inverter'].get('use_local_time', False),
-        "log_console": configfile['inverter'].get('log_console', 'WARNING'),
-        "log_file": configfile['inverter'].get('log_file', 'OFF'),
-        "level": configfile['inverter'].get('level', 1),
+        "host": configfile["inverter"].get("host", None),
+        "port": configfile["inverter"].get("port", 502),
+        "timeout": configfile["inverter"].get("timeout", 10),
+        "retries": configfile["inverter"].get("retries", 3),
+        "slave": configfile["inverter"].get("slave", 0x01),
+        "scan_interval": configfile["inverter"].get("scan_interval", 30),
+        "connection": configfile["inverter"].get("connection", "modbus"),
+        "model": configfile["inverter"].get("model", None),
+        "smart_meter": configfile["inverter"].get("smart_meter", False),
+        "use_local_time": configfile["inverter"].get("use_local_time", False),
+        "log_console": configfile["inverter"].get("log_console", "WARNING"),
+        "log_file": configfile["inverter"].get("log_file", "OFF"),
+        "level": configfile["inverter"].get("level", 1),
     }
 
 
@@ -64,17 +64,17 @@ def _setup_logging(config_inverter, loglevel, logfolder):
     if loglevel is not None:
         logger.handlers[0].setLevel(loglevel)
     else:
-        logger.handlers[0].setLevel(config_inverter['log_console'])
+        logger.handlers[0].setLevel(config_inverter["log_console"])
 
-    if not config_inverter['log_file'] == "OFF":
+    if config_inverter["log_file"] != "OFF":
         valid_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
-        if config_inverter['log_file'] in valid_log_levels:
+        if config_inverter["log_file"] in valid_log_levels:
             logfile = logfolder + "SunGather.log"
             fh = logging.handlers.RotatingFileHandler(  # Log 10mb files, 10 x files = 100mb
-                logfile, mode='w', encoding='utf-8', maxBytes=10485760, backupCount=10
+                logfile, mode="w", encoding="utf-8", maxBytes=10485760, backupCount=10
             )
             fh.formatter = logger.handlers[0].formatter
-            fh.setLevel(config_inverter['log_file'])
+            fh.setLevel(config_inverter["log_file"])
             logger.addHandler(fh)
         else:
             logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
@@ -87,21 +87,18 @@ def _setup_logging(config_inverter, loglevel, logfolder):
 def _load_exports(configfile, inverter):
     """Dynamically import and configure enabled export modules."""
     exports = []
-    if not configfile.get('exports'):
+    if not configfile.get("exports"):
         return exports
 
-    for export in configfile.get('exports'):
+    for export in configfile.get("exports"):
         try:
-            if export.get('enabled', False):
-                export_load = importlib.import_module("exports." + export.get('name'))
-                logging.info("Loading Export: exports %s", export.get('name'))
-                exports.append(getattr(export_load, "export_" + export.get('name'))())
+            if export.get("enabled", False):
+                export_load = importlib.import_module("exports." + export.get("name"))
+                logging.info("Loading Export: exports %s", export.get("name"))
+                exports.append(getattr(export_load, "export_" + export.get("name"))())
                 _retval = exports[-1].configure(export, inverter)
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            logging.error(
-                "Failed loading export: %s -- check %s.py exists in exports/",
-                err, export.get('name')
-            )
+        except Exception as err:  # noqa: PERF203
+            logging.error("Failed loading export: %s -- check %s.py exists in exports/", err, export.get("name"))
 
     return exports
 
@@ -115,93 +112,87 @@ def _run_loop(inverter, exports, scan_interval, runonce):
 
         try:
             success = inverter.scrape()
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:
             logging.exception("Failed to scrape: %s", e)
             success = False
 
         if success:
             for export in exports:
                 export.publish(inverter)
-            if not inverter.inverter_config['connection'] == "http":
+            if inverter.inverter_config["connection"] != "http":
                 inverter.close()
         else:
             inverter.disconnect()
-            logging.warning(
-                "Data collection failed, skipped exporting data. Retying in %s secs",
-                scan_interval
-            )
+            logging.warning("Data collection failed, skipped exporting data. Retying in %s secs", scan_interval)
 
         loop_end = time.perf_counter()
         process_time = round(loop_end - loop_start, 2)
-        logging.debug('Processing Time: %s secs', process_time)
+        logging.debug("Processing Time: %s secs", process_time)
 
         if runonce:
             sys.exit(0)
 
         if scan_interval - process_time <= 1:
             logging.warning(
-                "SunGather is taking %s to process, which is longer than interval %s, "
-                "Please increase scan interval",
-                process_time, scan_interval
+                "SunGather is taking %s to process, which is longer than interval %s, Please increase scan interval",
+                process_time,
+                scan_interval,
             )
             time.sleep(process_time)
         else:
-            logging.info('Next scrape in %s secs', int(scan_interval - process_time))
+            logging.info("Next scrape in %s secs", int(scan_interval - process_time))
             time.sleep(scan_interval - process_time)
 
 
 def _parse_args():
     """Parse command-line arguments and return (configfilename, registersfilename,
     logfolder, loglevel, runonce)."""
-    configfilename = 'config.yaml'
-    registersfilename = 'registers-sungrow.yaml'
-    logfolder = ''
+    configfilename = "config.yaml"
+    registersfilename = "registers-sungrow.yaml"
+    logfolder = ""
     runonce = False
     loglevel = None
 
     try:
         opts, _args = getopt.getopt(sys.argv[1:], "hc:r:l:v:", "runonce")
     except getopt.GetoptError:
-        sys.exit('No options passed via command line, use -h to see all options')
+        sys.exit("No options passed via command line, use -h to see all options")
 
     for opt, arg in opts:
-        if opt == '-h':
-            print(f'\nSunGather {__version__}')
-            print('\nhttps://sungather.app')
-            print('usage: python3 sungather.py [options]')
-            print('\nCommandling arguments override any config file settings')
-            print('Options and arguments:')
-            print('-c config.yaml             : Specify config file.')
-            print('-r registers-file.yaml     : Specify registers file.')
-            print('-l /logs/                  : Specify folder to store logs.')
-            print('-v 30                      : Logging Level, 10 = Debug, 20 = Info, '
-                  '30 = Warning (default), 40 = Error')
-            print('--runonce                  : Run once then exit')
-            print('-h                         : print this help message and exit (also --help)')
-            print('\nExample:')
-            print('python3 sungather.py -c /full/path/config.yaml\n')
+        if opt == "-h":
+            print(f"\nSunGather {__version__}")
+            print("\nhttps://sungather.app")
+            print("usage: python3 sungather.py [options]")
+            print("\nCommandling arguments override any config file settings")
+            print("Options and arguments:")
+            print("-c config.yaml             : Specify config file.")
+            print("-r registers-file.yaml     : Specify registers file.")
+            print("-l /logs/                  : Specify folder to store logs.")
+            print(
+                "-v 30                      : Logging Level, 10 = Debug, 20 = Info, 30 = Warning (default), 40 = Error"
+            )
+            print("--runonce                  : Run once then exit")
+            print("-h                         : print this help message and exit (also --help)")
+            print("\nExample:")
+            print("python3 sungather.py -c /full/path/config.yaml\n")
             sys.exit()
-        elif opt == '-c':
+        elif opt == "-c":
             configfilename = arg
-        elif opt == '-r':
+        elif opt == "-r":
             registersfilename = arg
-        elif opt == '-l':
+        elif opt == "-l":
             logfolder = arg
-        elif opt == '-v':
+        elif opt == "-v":
             if arg.isnumeric():
                 if 0 <= int(arg) <= 50:
                     loglevel = int(arg)
                 else:
-                    logging.error(
-                        "Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error"
-                    )
+                    logging.error("Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error")
                     sys.exit(2)
             else:
-                logging.error(
-                    "Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error"
-                )
+                logging.error("Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error")
                 sys.exit(2)
-        elif opt == '--runonce':
+        elif opt == "--runonce":
             runonce = True
 
     return configfilename, registersfilename, logfolder, loglevel, runonce
@@ -211,16 +202,16 @@ def main():
     """Entry point: parse args, load config, connect to inverter, run polling loop."""
     configfilename, registersfilename, logfolder, loglevel, runonce = _parse_args()
 
-    logging.info('Starting SunGather %s', __version__)
-    logging.info('Need Help? https://github.com/anthony-spruyt/SunGather')
+    logging.info("Starting SunGather %s", __version__)
+    logging.info("Need Help? https://github.com/anthony-spruyt/SunGather")
 
     configfile, registersfile = _load_config(configfilename, registersfilename)
     config_inverter = _build_inverter_config(configfile)
 
     _setup_logging(config_inverter, loglevel, logfolder)
-    logging.debug('Inverter Config Loaded: %s', config_inverter)
+    logging.debug("Inverter Config Loaded: %s", config_inverter)
 
-    if config_inverter.get('host'):
+    if config_inverter.get("host"):
         inverter = SungrowClient(config_inverter)
     else:
         logging.error("Error: host option in config is required")
@@ -228,22 +219,18 @@ def main():
 
     if not inverter.checkConnection():
         logging.error(
-            "Error: Connection to inverter failed: %s:%s",
-            config_inverter.get('host'), config_inverter.get('port')
+            "Error: Connection to inverter failed: %s:%s", config_inverter.get("host"), config_inverter.get("port")
         )
-        sys.exit(
-            f"Error: Connection to inverter failed: "
-            f"{config_inverter.get('host')}:{config_inverter.get('port')}"
-        )
+        sys.exit(f"Error: Connection to inverter failed: {config_inverter.get('host')}:{config_inverter.get('port')}")
 
     inverter.configure_registers(registersfile)
-    if not inverter.inverter_config['connection'] == "http":
+    if inverter.inverter_config["connection"] != "http":
         inverter.close()
 
     exports = _load_exports(configfile, inverter)
     signal.signal(signal.SIGTERM, handle_sigterm)
 
-    _run_loop(inverter, exports, config_inverter.get('scan_interval'), runonce)
+    _run_loop(inverter, exports, config_inverter.get("scan_interval"), runonce)
 
 
 def handle_sigterm(_signum, _frame):
@@ -251,12 +238,9 @@ def handle_sigterm(_signum, _frame):
     sys.exit(0)
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(format="%(asctime)s %(levelname)-8s %(message)s", level=logging.DEBUG, datefmt="%Y-%m-%d %H:%M:%S")
 
-logger = logging.getLogger('')
+logger = logging.getLogger("")
 ch = logging.StreamHandler()
 ch.setLevel(logging.WARNING)
 logger.addHandler(ch)

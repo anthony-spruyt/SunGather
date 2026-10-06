@@ -4,15 +4,14 @@ import json
 from datetime import datetime, timedelta
 from http.server import HTTPServer
 from io import BytesIO
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest  # pylint: disable=import-error
+import pytest
 
-# pylint: disable=import-error
 from exports.webserver import (
-    export_webserver,
     MyServer,
     check_inverter_reachable,
+    export_webserver,
 )
 
 
@@ -20,7 +19,7 @@ from exports.webserver import (
 def reset_webserver_state():
     """Reset class-level state before each test to prevent leakage."""
     export_webserver.last_successful_scrape = None
-    export_webserver.inverter_host = '192.0.2.100'
+    export_webserver.inverter_host = "192.0.2.100"
     export_webserver.inverter_port = 502
     export_webserver.scan_interval = 30
 
@@ -33,9 +32,9 @@ def make_request(path, inverter_reachable=True):
     handler.server = server
     handler.path = path
     handler.headers = {}
-    handler.requestline = f'GET {path} HTTP/1.1'
-    handler.request_version = 'HTTP/1.1'
-    handler.command = 'GET'
+    handler.requestline = f"GET {path} HTTP/1.1"
+    handler.request_version = "HTTP/1.1"
+    handler.command = "GET"
 
     response_code = None
 
@@ -49,7 +48,7 @@ def make_request(path, inverter_reachable=True):
     handler.wfile = BytesIO()
 
     with patch(
-        'exports.webserver.check_inverter_reachable',
+        "exports.webserver.check_inverter_reachable",
         return_value=inverter_reachable,
     ):
         handler.do_GET()
@@ -66,32 +65,24 @@ class TestHealthInverterOffline:
 
     def test_startup_inverter_off(self):
         """Health returns 200 when inverter is unreachable."""
-        code, body, _ = make_request(
-            '/health', inverter_reachable=False
-        )
+        code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 200
-        assert body['status'] == 'ok'
-        assert body['detail'] == 'inverter_offline'
-        assert body['inverter_reachable'] is False
+        assert body["status"] == "ok"
+        assert body["detail"] == "inverter_offline"
+        assert body["inverter_reachable"] is False
 
     def test_night_after_day_scraping(self):
         """Stale timestamp ignored when inverter is off."""
-        export_webserver.last_successful_scrape = (
-            datetime.now() - timedelta(seconds=200)
-        )
-        code, body, _ = make_request(
-            '/health', inverter_reachable=False
-        )
+        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=200)
+        code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 200
-        assert body['detail'] == 'inverter_offline'
+        assert body["detail"] == "inverter_offline"
 
     def test_never_scraped_inverter_off(self):
         """No scrape age reported when inverter is off."""
-        code, body, _ = make_request(
-            '/health', inverter_reachable=False
-        )
+        code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 200
-        assert body['last_scrape_age_seconds'] is None
+        assert body["last_scrape_age_seconds"] is None
 
 
 class TestHealthFreshData:
@@ -100,24 +91,18 @@ class TestHealthFreshData:
     def test_returns_200_when_data_is_fresh(self):
         """Recent scrape returns 200 with age."""
         export_webserver.last_successful_scrape = datetime.now()
-        code, body, _ = make_request(
-            '/health', inverter_reachable=True
-        )
+        code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 200
-        assert body['detail'] == 'fresh'
-        assert body['inverter_reachable'] is True
-        assert body['last_scrape_age_seconds'] < 2.0
+        assert body["detail"] == "fresh"
+        assert body["inverter_reachable"] is True
+        assert body["last_scrape_age_seconds"] < 2.0
 
     def test_returns_200_just_below_threshold(self):
         """Scrape just under 3x threshold returns 200."""
-        export_webserver.last_successful_scrape = (
-            datetime.now() - timedelta(seconds=89)
-        )
-        code, body, _ = make_request(
-            '/health', inverter_reachable=True
-        )
+        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=89)
+        code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 200
-        assert body['detail'] == 'fresh'
+        assert body["detail"] == "fresh"
 
 
 class TestHealthStaleData:
@@ -125,27 +110,19 @@ class TestHealthStaleData:
 
     def test_returns_503_when_stale(self):
         """Stale scrape with reachable inverter returns 503."""
-        export_webserver.last_successful_scrape = (
-            datetime.now() - timedelta(seconds=200)
-        )
-        code, body, _ = make_request(
-            '/health', inverter_reachable=True
-        )
+        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=200)
+        code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 503
-        assert body['status'] == 'stale'
-        assert body['detail'] == 'scrape_failing'
-        assert body['last_scrape_age_seconds'] >= 199.0
+        assert body["status"] == "stale"
+        assert body["detail"] == "scrape_failing"
+        assert body["last_scrape_age_seconds"] >= 199.0
 
     def test_returns_503_just_past_boundary(self):
         """Scrape just over 3x threshold returns 503."""
-        export_webserver.last_successful_scrape = (
-            datetime.now() - timedelta(seconds=91)
-        )
-        code, body, _ = make_request(
-            '/health', inverter_reachable=True
-        )
+        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=91)
+        code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 503
-        assert body['detail'] == 'scrape_failing'
+        assert body["detail"] == "scrape_failing"
 
 
 class TestHealthConnectedNeverScraped:
@@ -153,12 +130,10 @@ class TestHealthConnectedNeverScraped:
 
     def test_reachable_but_never_scraped(self):
         """Reachable inverter with no scrape returns 503."""
-        code, body, _ = make_request(
-            '/health', inverter_reachable=True
-        )
+        code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 503
-        assert body['detail'] == 'connected_not_scraping'
-        assert body['inverter_reachable'] is True
+        assert body["detail"] == "connected_not_scraping"
+        assert body["inverter_reachable"] is True
 
 
 class TestHealthNotConfigured:
@@ -167,12 +142,10 @@ class TestHealthNotConfigured:
     def test_host_none_returns_503(self):
         """Missing host config returns 503 error."""
         export_webserver.inverter_host = None
-        code, body, _ = make_request(
-            '/health', inverter_reachable=False
-        )
+        code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 503
-        assert body['detail'] == 'not_configured'
-        assert body['status'] == 'error'
+        assert body["detail"] == "not_configured"
+        assert body["status"] == "error"
 
 
 class TestHealthContentType:
@@ -180,12 +153,8 @@ class TestHealthContentType:
 
     def test_health_returns_json_content_type(self):
         """Health endpoint sets application/json."""
-        _, _, handler = make_request(
-            '/health', inverter_reachable=False
-        )
-        handler.send_header.assert_any_call(
-            "Content-type", "application/json"
-        )
+        _, _, handler = make_request("/health", inverter_reachable=False)
+        handler.send_header.assert_any_call("Content-type", "application/json")
 
 
 class TestCheckInverterReachable:
@@ -193,34 +162,26 @@ class TestCheckInverterReachable:
 
     def test_reachable(self):
         """Returns True when TCP connect succeeds."""
-        with patch(
-            'exports.webserver.socket.create_connection'
-        ) as mock_conn:
+        with patch("exports.webserver.socket.create_connection") as mock_conn:
             mock_conn.return_value.__enter__ = MagicMock()
             mock_conn.return_value.__exit__ = MagicMock()
-            assert check_inverter_reachable(
-                '192.0.2.100', 502
-            ) is True
+            assert check_inverter_reachable("192.0.2.100", 502) is True
 
     def test_unreachable(self):
         """Returns False when connection is refused."""
         with patch(
-            'exports.webserver.socket.create_connection',
+            "exports.webserver.socket.create_connection",
             side_effect=OSError,
         ):
-            assert check_inverter_reachable(
-                '192.0.2.100', 502
-            ) is False
+            assert check_inverter_reachable("192.0.2.100", 502) is False
 
     def test_timeout(self):
         """Returns False on connection timeout."""
         with patch(
-            'exports.webserver.socket.create_connection',
+            "exports.webserver.socket.create_connection",
             side_effect=TimeoutError,
         ):
-            assert check_inverter_reachable(
-                '192.0.2.100', 502
-            ) is False
+            assert check_inverter_reachable("192.0.2.100", 502) is False
 
 
 class TestPublishUpdatesTimestamp:
@@ -230,16 +191,14 @@ class TestPublishUpdatesTimestamp:
         """publish() records current time."""
         wserver = export_webserver()
         inverter = MagicMock()
-        inverter.latest_scrape = {'test_register': 100}
-        inverter.getRegisterAddress.return_value = '5000'
-        inverter.getRegisterUnit.return_value = 'W'
+        inverter.latest_scrape = {"test_register": 100}
+        inverter.getRegisterAddress.return_value = "5000"
+        inverter.getRegisterUnit.return_value = "W"
         inverter.client_config = {}
         inverter.inverter_config = {}
         wserver.publish(inverter)
         assert export_webserver.last_successful_scrape is not None
-        age = (
-            datetime.now() - export_webserver.last_successful_scrape
-        )
+        age = datetime.now() - export_webserver.last_successful_scrape
         assert age.total_seconds() < 2
 
 
@@ -251,20 +210,15 @@ class TestConfigureStoresInverterInfo:
         wserver = export_webserver()
         inverter = MagicMock()
         inverter.inverter_config = {
-            'scan_interval': 60,
-            'connection': 'modbus',
+            "scan_interval": 60,
+            "connection": "modbus",
         }
-        inverter.client_config = {
-            'host': '192.0.2.10', 'port': 502
-        }
-        config = {
-            'port': 8099, 'enabled': True, 'name': 'webserver'
-        }
-        with patch('exports.webserver.HTTPServer'):
-            with patch('exports.webserver.Thread'):
-                wserver.configure(config, inverter)
+        inverter.client_config = {"host": "192.0.2.10", "port": 502}
+        config = {"port": 8099, "enabled": True, "name": "webserver"}
+        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+            wserver.configure(config, inverter)
         assert export_webserver.scan_interval == 60
-        assert export_webserver.inverter_host == '192.0.2.10'
+        assert export_webserver.inverter_host == "192.0.2.10"
         assert export_webserver.inverter_port == 502
 
     def test_configure_http_mode_uses_port_8082(self):
@@ -272,18 +226,13 @@ class TestConfigureStoresInverterInfo:
         wserver = export_webserver()
         inverter = MagicMock()
         inverter.inverter_config = {
-            'scan_interval': 30,
-            'connection': 'http',
+            "scan_interval": 30,
+            "connection": "http",
         }
-        inverter.client_config = {
-            'host': '192.0.2.10', 'port': 502
-        }
-        config = {
-            'port': 8099, 'enabled': True, 'name': 'webserver'
-        }
-        with patch('exports.webserver.HTTPServer'):
-            with patch('exports.webserver.Thread'):
-                wserver.configure(config, inverter)
+        inverter.client_config = {"host": "192.0.2.10", "port": 502}
+        config = {"port": 8099, "enabled": True, "name": "webserver"}
+        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+            wserver.configure(config, inverter)
         assert export_webserver.inverter_port == 8082
 
     def test_configure_sungrow_mode_uses_config_port(self):
@@ -291,16 +240,11 @@ class TestConfigureStoresInverterInfo:
         wserver = export_webserver()
         inverter = MagicMock()
         inverter.inverter_config = {
-            'scan_interval': 30,
-            'connection': 'sungrow',
+            "scan_interval": 30,
+            "connection": "sungrow",
         }
-        inverter.client_config = {
-            'host': '192.0.2.10', 'port': 502
-        }
-        config = {
-            'port': 8099, 'enabled': True, 'name': 'webserver'
-        }
-        with patch('exports.webserver.HTTPServer'):
-            with patch('exports.webserver.Thread'):
-                wserver.configure(config, inverter)
+        inverter.client_config = {"host": "192.0.2.10", "port": 502}
+        config = {"port": 8099, "enabled": True, "name": "webserver"}
+        with patch("exports.webserver.HTTPServer"), patch("exports.webserver.Thread"):
+            wserver.configure(config, inverter)
         assert export_webserver.inverter_port == 502
