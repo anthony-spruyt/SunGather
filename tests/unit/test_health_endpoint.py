@@ -16,12 +16,12 @@ from sungather.exports.webserver import (
 
 
 @pytest.fixture(autouse=True)
-def reset_webserver_state():
+def reset_webserver_state(monkeypatch):
     """Reset class-level state before each test to prevent leakage."""
-    export_webserver.last_successful_scrape = None
-    export_webserver.inverter_host = "192.0.2.100"
-    export_webserver.inverter_port = 502
-    export_webserver.scan_interval = 30
+    monkeypatch.setattr(export_webserver, "last_successful_scrape", None)
+    monkeypatch.setattr(export_webserver, "inverter_host", "192.0.2.100")
+    monkeypatch.setattr(export_webserver, "inverter_port", 502)
+    monkeypatch.setattr(export_webserver, "scan_interval", 30)
 
 
 def make_request(path, inverter_reachable=True):
@@ -71,9 +71,9 @@ class TestHealthInverterOffline:
         assert body["detail"] == "inverter_offline"
         assert body["inverter_reachable"] is False
 
-    def test_night_after_day_scraping(self):
+    def test_night_after_day_scraping(self, monkeypatch):
         """Stale timestamp ignored when inverter is off."""
-        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=200)
+        monkeypatch.setattr(export_webserver, "last_successful_scrape", datetime.now() - timedelta(seconds=200))
         code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 200
         assert body["detail"] == "inverter_offline"
@@ -88,18 +88,18 @@ class TestHealthInverterOffline:
 class TestHealthFreshData:
     """Inverter on, data fresh - 200."""
 
-    def test_returns_200_when_data_is_fresh(self):
+    def test_returns_200_when_data_is_fresh(self, monkeypatch):
         """Recent scrape returns 200 with age."""
-        export_webserver.last_successful_scrape = datetime.now()
+        monkeypatch.setattr(export_webserver, "last_successful_scrape", datetime.now())
         code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 200
         assert body["detail"] == "fresh"
         assert body["inverter_reachable"] is True
         assert body["last_scrape_age_seconds"] < 2.0
 
-    def test_returns_200_just_below_threshold(self):
+    def test_returns_200_just_below_threshold(self, monkeypatch):
         """Scrape just under 3x threshold returns 200."""
-        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=89)
+        monkeypatch.setattr(export_webserver, "last_successful_scrape", datetime.now() - timedelta(seconds=89))
         code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 200
         assert body["detail"] == "fresh"
@@ -108,18 +108,18 @@ class TestHealthFreshData:
 class TestHealthStaleData:
     """Inverter on, data stale - 503 (restart me)."""
 
-    def test_returns_503_when_stale(self):
+    def test_returns_503_when_stale(self, monkeypatch):
         """Stale scrape with reachable inverter returns 503."""
-        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=200)
+        monkeypatch.setattr(export_webserver, "last_successful_scrape", datetime.now() - timedelta(seconds=200))
         code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 503
         assert body["status"] == "stale"
         assert body["detail"] == "scrape_failing"
         assert body["last_scrape_age_seconds"] >= 199.0
 
-    def test_returns_503_just_past_boundary(self):
+    def test_returns_503_just_past_boundary(self, monkeypatch):
         """Scrape just over 3x threshold returns 503."""
-        export_webserver.last_successful_scrape = datetime.now() - timedelta(seconds=91)
+        monkeypatch.setattr(export_webserver, "last_successful_scrape", datetime.now() - timedelta(seconds=91))
         code, body, _ = make_request("/health", inverter_reachable=True)
         assert code == 503
         assert body["detail"] == "scrape_failing"
@@ -139,9 +139,9 @@ class TestHealthConnectedNeverScraped:
 class TestHealthNotConfigured:
     """Host not set - 503 with not_configured detail."""
 
-    def test_host_none_returns_503(self):
+    def test_host_none_returns_503(self, monkeypatch):
         """Missing host config returns 503 error."""
-        export_webserver.inverter_host = None
+        monkeypatch.setattr(export_webserver, "inverter_host", None)
         code, body, _ = make_request("/health", inverter_reachable=False)
         assert code == 503
         assert body["detail"] == "not_configured"

@@ -97,7 +97,7 @@ def _load_exports(configfile, inverter):
                 exports.append(getattr(export_load, "export_" + export.get("name"))())
                 _retval = exports[-1].configure(export, inverter)
         except Exception as err:  # noqa: PERF203
-            logging.error("Failed loading export: %s -- check %s.py exists in exports/", err, export.get("name"))
+            logging.exception("Failed loading export: %s -- check %s.py exists in exports/", err, export.get("name"))
 
     return exports
 

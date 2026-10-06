@@ -76,7 +76,7 @@ class SungrowModbusTcpClient(ModbusTcpClient):
         length = len(request)
         padding = 16 - (length % 16)
         self._transactionID = request[:2]
-        request = HEADER + bytes(request[2:]) + bytes([0xFF for i in range(padding)])
+        request = HEADER + bytes(request[2:]) + bytes([0xFF] * padding)
         crypto_header = bytes([1, 0, length, padding])
         encrypted_request = crypto_header + self._aes_ecb.encrypt(request)
         return super().send(encrypted_request) - len(crypto_header) - padding

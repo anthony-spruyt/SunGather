@@ -4,6 +4,8 @@ import time
 
 import requests
 
+RESPONSE_LOG = "PVOutput: Response; %s Message; %s"
+
 
 # See: https://pvoutput.org/help/api_specification.html#add-status-service
 # Parameter   Field               Required    Format      Unit    Example     Donation
@@ -81,7 +83,7 @@ class export_pvoutput:
         try:
             logging.debug("PVOutput: Get System ; %s, %s, 'teams': '1'", self.url_getsystem, str(self.headers))
             response = requests.post(url=self.url_getsystem, headers=self.headers, params={"teams": "1"}, timeout=3)
-            logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+            logging.debug(RESPONSE_LOG, response.status_code, response.content)
 
             if response.status_code == 200:
                 system = response.text.split(";")[0]
@@ -111,7 +113,7 @@ class export_pvoutput:
                 response = requests.post(
                     url=self.url_jointeam, headers=self.headers, params={"tid": self.tid}, timeout=3
                 )
-                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+                logging.debug(RESPONSE_LOG, response.status_code, response.content)
             elif team_member and not self.pvoutput_config["join_team"]:
                 logging.debug(
                     "PVOutput: Leave Team; %s, %s, 'tid': '%s'", self.url_leaveteam, str(self.headers), self.tid
@@ -119,7 +121,7 @@ class export_pvoutput:
                 response = requests.post(
                     url=self.url_leaveteam, headers=self.headers, params={"tid": self.tid}, timeout=3
                 )
-                logging.debug("PVOutput: Response; %s Message; %s", response.status_code, response.content)
+                logging.debug(RESPONSE_LOG, response.status_code, response.content)
         except Exception:
             pass
 
