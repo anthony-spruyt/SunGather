@@ -10,17 +10,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /build
 
-# hadolint ignore=DL3008
-RUN apt-get update \
- && apt-get install -y --no-install-recommends build-essential \
- && rm -rf /var/lib/apt/lists/*
-
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --no-install-project
+RUN uv sync --frozen --no-build --no-dev --no-install-project
 
 COPY README.md LICENSE ./
 COPY src/ ./src/
-RUN uv sync --frozen --no-dev --no-editable
+RUN uv sync --frozen --no-build --no-dev --no-editable
 
 FROM python:3.14-slim@sha256:65a94bb37b630c482dfd31e5fb9b449cb26c31eab1b7a125cd6bd624acfe3b30
 
