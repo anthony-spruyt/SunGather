@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from urllib.parse import parse_qs, urlparse
 
-from version import __version__
+from sungather.version import __version__
 
 
 def sanitize_for_log(value):

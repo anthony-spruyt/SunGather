@@ -1,4 +1,3 @@
-# tests/test_sungrow_client_registers.py
 """Characterization tests for SungrowClient.configure_registers.
 
 These lock in current behavior before refactoring.
@@ -9,9 +8,9 @@ from unittest.mock import MagicMock
 
 import yaml
 
-from client.sungrow_client import SungrowClient
+from sungather.client.sungrow_client import SungrowClient
 
-FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures")
+FIXTURES = os.path.join(os.path.dirname(__file__), "..", "fixtures")
 
 
 def load_test_registers():
