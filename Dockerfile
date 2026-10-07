@@ -17,7 +17,7 @@ COPY README.md LICENSE ./
 COPY src/ ./src/
 RUN uv sync --frozen --no-build --no-dev --no-editable
 
-FROM python:3.14-slim@sha256:65a94bb37b630c482dfd31e5fb9b449cb26c31eab1b7a125cd6bd624acfe3b30
+FROM python:3.14-slim@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9
 
 # hadolint ignore=DL3027,DL3008
 RUN apt-get update \
