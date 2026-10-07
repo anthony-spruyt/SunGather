@@ -4,6 +4,8 @@ import logging
 
 import paho.mqtt.client as mqtt
 
+MQTT_TLS_PORT = 8883
+
 
 class export_mqtt:
     def __init__(self):
@@ -268,7 +270,6 @@ class export_mqtt:
             "xy_value_template",
         ]
 
-    # Configure MQTT
     def configure(self, config, inverter):
         self.model = inverter.getInverterModel(True)
         self.serial_number = inverter.getSerialNumber()
@@ -284,7 +285,7 @@ class export_mqtt:
         }
 
         self.ha_sensors = [{}]
-        self.ha_sensors.pop()  # Remove null value from list
+        self.ha_sensors.pop()
 
         if not self.mqtt_config["host"]:
             logging.info("MQTT: Host config is required")
@@ -298,7 +299,7 @@ class export_mqtt:
         if self.mqtt_config["username"] and self.mqtt_config["password"]:
             self.mqtt_client.username_pw_set(self.mqtt_config["username"], self.mqtt_config["password"])
 
-        if self.mqtt_config["port"] == 8883:
+        if self.mqtt_config["port"] == MQTT_TLS_PORT:
             self.mqtt_client.tls_set()
 
         self.mqtt_client.connect_async(self.mqtt_config["host"], port=self.mqtt_config["port"], keepalive=60)
@@ -345,15 +346,8 @@ class export_mqtt:
         except Exception:
             logging.warning("MQTT: Server Error; Server not configured")
             return False
-        # qos=0 is set, so no acknowledgment is sent, rending this check useless
-        # elif self.mqtt_queue.__len__() > 10:
-        #    logging.warning(
-        #        'MQTT: %s messages queued, this may be due to a MQTT server issue',
-        #        self.mqtt_queue.__len__()
-        #    )
 
         if self.mqtt_config["homeassistant"] and not self.ha_discovery_published:
-            # Build Device, this will be the same for every message
             ha_device = {
                 "name": f"Sungrow {self.model}",
                 "manufacturer": "Sungrow",
@@ -378,10 +372,8 @@ class export_mqtt:
                     if ha_sensor.get(ha_variable):
                         config_msg[ha_variable] = ha_sensor[ha_variable]
 
-                # Set unique_id, include Serial so is unique
                 config_msg["unique_id"] = f"sungather_{self.cleanName(config_msg['name'])}_{self.serial_number}"
 
-                # Variables with links to registers
                 if ha_sensor.get("register", False) and inverter.getRegisterUnit(ha_sensor.get("register")):
                     config_msg["unit_of_measurement"] = inverter.getRegisterUnit(ha_sensor.get("register"))
 

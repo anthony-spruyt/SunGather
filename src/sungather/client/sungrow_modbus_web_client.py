@@ -9,6 +9,8 @@ from websocket import create_connection
 
 from sungather.version import __version__
 
+RESULT_TOKEN_EXPIRED = 106
+
 
 class SungrowModbusWebClient(ModbusTcpClient):
     """Modbus over Sungrow HTTP client for WiNet-S Dongle."""
@@ -160,7 +162,7 @@ class SungrowModbusWebClient(ModbusTcpClient):
                 ]
                 self.payload_modbus.extend(modbus_data)
                 return self.payload_modbus
-            if self.payload_dict.get("result_code", 0) == 106:
+            if self.payload_dict.get("result_code", 0) == RESULT_TOKEN_EXPIRED:
                 self.ws_token = ""
                 raise ConnectionException(
                     f"Token Expired: {self.payload_dict.get('result_code')!s}:{self.payload_dict.get('result_msg')!s} "

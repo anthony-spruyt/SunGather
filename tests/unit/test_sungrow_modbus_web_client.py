@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sungather.client.sungrow_modbus_web_client import SungrowModbusWebClient
 
 
@@ -41,3 +43,29 @@ class TestWebClientConnectedProperty:
         client = SungrowModbusWebClient(host="192.0.2.1")
         client.ws_socket = MagicMock()
         assert client.connected is True
+
+
+class TestWebClientSend:
+    @patch("sungather.client.sungrow_modbus_web_client.requests.get")
+    def test_expired_token_is_cleared_and_raised(self, mock_get):
+        from pymodbus.exceptions import ConnectionException
+
+        mock_get.return_value = MagicMock(status_code=200, text='{"result_code": 106, "result_msg": "expired"}')
+        client = SungrowModbusWebClient(host="192.0.2.1")
+        client.ws_token = "stale"
+
+        with pytest.raises(ConnectionException, match="Token Expired"):
+            client.send(bytes([0, 1, 0, 0, 0, 6, 1, 4, 0, 0, 0, 1]))
+        assert client.ws_token == ""
+
+    @patch("sungather.client.sungrow_modbus_web_client.requests.get")
+    def test_other_result_code_is_a_connection_failure(self, mock_get):
+        from pymodbus.exceptions import ConnectionException
+
+        mock_get.return_value = MagicMock(status_code=200, text='{"result_code": 105, "result_msg": "nope"}')
+        client = SungrowModbusWebClient(host="192.0.2.1")
+        client.ws_token = "valid"
+
+        with pytest.raises(ConnectionException, match="Connection Failed"):
+            client.send(bytes([0, 1, 0, 0, 0, 6, 1, 4, 0, 0, 0, 1]))
+        assert client.ws_token == "valid"
