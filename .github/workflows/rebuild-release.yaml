@@ -16,7 +16,7 @@ permissions:
   attestations: "write"
 jobs:
   rebuild:
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_rebuild-release.yaml@main"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_rebuild-release.yaml@5cbe1a184d32fd631420e30e20b46a85b5aa244f"
     with:
       version: "${{ inputs.version }}"
       language: "python"
