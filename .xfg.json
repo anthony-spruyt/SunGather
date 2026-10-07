@@ -27,7 +27,6 @@
         ".editorconfig",
         ".github/actionlint.yaml",
         ".github/CODEOWNERS",
-        ".github/renovate.json5",
         ".github/workflows/ci.yaml",
         ".github/workflows/container-retention.yaml",
         ".github/workflows/rebuild-release.yaml",
@@ -56,6 +55,7 @@
         ".yamllint.yml",
         "LICENSE",
         "lint.sh",
+        "renovate.json",
         "ruff-base.toml",
         "trivy-mega-linter.yaml"
       ]
