@@ -43,12 +43,16 @@ addopts = "-m 'not integration'"
 extend = "ruff-base.toml"
 
 [tool.ruff.lint]
+extend-select = ["PLR"]
 ignore = [
     "BLE001", # upstream catches broadly so one failed read or export never stops the polling loop
     "LOG015", # upstream logs through the root logger that sungather.py configures
     "N801",   # export_<name> classes are looked up by name from config
     "N802",   # camelCase methods are the client's public API; do_GET/do_POST come from BaseHTTPRequestHandler
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["PLR2004"] # expected values in assertions read better inline
 
 [tool.ruff.lint.isort]
 known-first-party = ["sungather", "tests"]

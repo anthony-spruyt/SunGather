@@ -101,6 +101,28 @@ class TestConfigureRegistersWithKnownModel:
         register_names = [r["name"] for r in client.registers]
         assert "meter_power" not in register_names
 
+    def test_level_3_loads_every_register_whatever_its_level_or_models(self):
+        client = make_client(model="SG10KTL", level=3)
+        registersfile = load_test_registers()
+        client.load_registers = MagicMock(return_value=True)
+
+        client.configure_registers(registersfile)
+
+        register_names = [r["name"] for r in client.registers]
+        assert "pid_alarm_code" in register_names
+        assert "export_power_hybrid" in register_names
+
+    def test_level_1_skips_higher_levels_and_other_models(self):
+        client = make_client(model="SG10KTL", level=1)
+        registersfile = load_test_registers()
+        client.load_registers = MagicMock(return_value=True)
+
+        client.configure_registers(registersfile)
+
+        register_names = [r["name"] for r in client.registers]
+        assert "pid_alarm_code" not in register_names
+        assert "export_power_hybrid" not in register_names
+
 
 class TestConfigureRegistersModelDetection:
     """When model is None, auto-detect from inverter."""

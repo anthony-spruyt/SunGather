@@ -1,10 +1,12 @@
 import datetime
 import logging
 import time
+from http import HTTPStatus
 
 import requests
 
 RESPONSE_LOG = "PVOutput: Response; %s Message; %s"
+MAX_BATCH_POINTS = 30
 
 
 # See: https://pvoutput.org/help/api_specification.html#add-status-service
@@ -64,7 +66,7 @@ class export_pvoutput:
             "batch_points": config.get("batch_points", 1),
         }
         self.pvoutput_parameters = [{}]
-        self.pvoutput_parameters.pop()  # Remove null value from list
+        self.pvoutput_parameters.pop()
 
         self.collected_data = {}
         self.batch_data = []
@@ -85,7 +87,7 @@ class export_pvoutput:
             response = requests.post(url=self.url_getsystem, headers=self.headers, params={"teams": "1"}, timeout=3)
             logging.debug(RESPONSE_LOG, response.status_code, response.content)
 
-            if response.status_code == 200:
+            if response.status_code == HTTPStatus.OK:
                 system = response.text.split(";")[0]
                 teams = response.text.split(";")[2]
 
@@ -129,7 +131,6 @@ class export_pvoutput:
         return True
 
     def collect_data(self, inverter):
-        # Check all required registers have been returned by the inverter
         if not inverter.validateLatestScrape("timestamp"):
             logging.error("PVOutput: Skipped collecting data, Timestamp missing from last scrape")
             return False
@@ -138,7 +139,6 @@ class export_pvoutput:
                 logging.error("PVOutput: Skipped collecting data,  %s missing from last scrape", parameter["register"])
                 return False
 
-        # Add new data to old data and increase count of data points
         for parameter in self.pvoutput_parameters:
             value = inverter.getRegisterValue(parameter.get("register"))
 
@@ -151,7 +151,6 @@ class export_pvoutput:
                 parameter.get("name") == "v3" and cum_flag in (1, 3)
             ):
                 self.collected_data[parameter.get("name")] = value
-            # Add the last data point to the previous data point if exists, otherwise set as last
             elif self.collected_data.get(parameter.get("name"), False):
                 self.collected_data[parameter.get("name")] = round(
                     self.collected_data[parameter.get("name")] + value, 3
@@ -185,9 +184,9 @@ class export_pvoutput:
         for x in range(1, 13):
             field = "v" + str(x)
             if self.collected_data.get(field):
-                if (x == 1 and cum_flag in (1, 2)) or (x == 3 and cum_flag in (1, 3)):
+                if (field == "v1" and cum_flag in (1, 2)) or (field == "v3" and cum_flag in (1, 3)):
                     value = int(self.collected_data[field])
-                elif x in (6, 7):  # Round to 1 decimal place
+                elif x in (6, 7):
                     value = round(self.collected_data[field] / self.collected_data["count"], 1)
                 else:  # Return INT, decimals cause upload errors
                     value = int(self.collected_data[field] / self.collected_data["count"])
@@ -218,7 +217,7 @@ class export_pvoutput:
             response = requests.post(url=self.url_addbatchstatus, headers=self.headers, params=payload, timeout=3)
             self.batch_count = 0
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 logging.error("PVOutput: Upload Failed; %s Message; %s", response.status_code, response.text)
                 logging.error(
                     "PVOutput: Request; %s, %s : %s", self.url_addbatchstatus, str(self.headers), str(payload)
@@ -238,7 +237,6 @@ class export_pvoutput:
         if not self.collect_data(inverter):
             return False
 
-        # Process data points every status_interval
         if (time.time() - self.last_publish) < (self.status_interval * 60):
             logging.info(
                 "PVOutput: Data logged, next upload in %s secs",
@@ -253,10 +251,11 @@ class export_pvoutput:
         else:
             logging.warning("PVOutput: No data collected in last %s minutes", (self.status_interval * 60))
 
-        # Max upload is 30, if over 30 then remove the oldest one
-        if len(self.batch_data) > 30:
+        if len(self.batch_data) > MAX_BATCH_POINTS:
             logging.warning(
-                "PVOutput: Over 30 data points scheduled to upload. max is 30 so removing oldest data point"
+                "PVOutput: Over %s data points scheduled to upload. max is %s so removing oldest data point",
+                MAX_BATCH_POINTS,
+                MAX_BATCH_POINTS,
             )
             self.batch_data.pop(0)
 

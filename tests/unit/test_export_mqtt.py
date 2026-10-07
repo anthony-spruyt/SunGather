@@ -113,3 +113,28 @@ class TestPublish:
             result = exporter.publish(inverter)
             assert result is True
             exporter.mqtt_client.publish.assert_called()
+
+
+class TestTls:
+    def _configure(self, port):
+        _fresh_mqtt_export()
+        mock_paho, mock_paho_mqtt = _patched_mqtt_modules()
+        with patch.dict(
+            sys.modules,
+            {
+                "paho": mock_paho,
+                "paho.mqtt": mock_paho_mqtt,
+                "paho.mqtt.client": mock_paho_mqtt.client,
+            },
+        ):
+            from sungather.exports.mqtt import export_mqtt
+
+            exporter = export_mqtt()
+            exporter.configure({**VALID_CONFIG, "port": port}, make_inverter())
+            return exporter.mqtt_client
+
+    def test_port_8883_enables_tls(self):
+        self._configure(8883).tls_set.assert_called_once_with()
+
+    def test_plain_port_skips_tls(self):
+        self._configure(1883).tls_set.assert_not_called()

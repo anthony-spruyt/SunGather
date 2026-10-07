@@ -4,6 +4,8 @@ import logging
 import os
 from unittest.mock import MagicMock
 
+import pytest
+
 SUNGATHER_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "src", "sungather", "sungather.py")
 
 
@@ -39,3 +41,17 @@ def test_load_exports_logs_traceback_when_export_fails(caplog):
     record = next(r for r in caplog.records if "Failed loading export" in r.getMessage())
     assert record.levelno == logging.ERROR
     assert record.exc_info is not None
+
+
+def test_verbose_accepts_levels_up_to_critical(monkeypatch):
+    module = importlib.import_module("sungather.sungather")
+    monkeypatch.setattr(module.sys, "argv", ["sungather", "-v", "50"])
+    assert module._parse_args()[3] == logging.CRITICAL
+
+
+def test_verbose_rejects_levels_above_critical(monkeypatch):
+    module = importlib.import_module("sungather.sungather")
+    monkeypatch.setattr(module.sys, "argv", ["sungather", "-v", "51"])
+    with pytest.raises(SystemExit) as exc:
+        module._parse_args()
+    assert exc.value.code == 2

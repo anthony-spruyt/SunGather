@@ -92,3 +92,50 @@ class TestPublish:
             exporter.publish(inverter)
             # At minimum, configure posted once; publish may post again
             assert call_count >= 1
+
+
+def _configured_exporter(config):
+    from sungather.exports.pvoutput import export_pvoutput
+
+    with patch("sungather.exports.pvoutput.requests.post", return_value=_make_response(200)):
+        exporter = export_pvoutput()
+        exporter.configure(config, make_inverter())
+    return exporter
+
+
+class TestBuildDataPoint:
+    def test_cumulative_fields_send_the_last_value_and_others_the_average(self):
+        exporter = _configured_exporter({**VALID_CONFIG, "cumulative_flag": 1})
+        exporter.collected_data = {"v1": 100.7, "v2": 300, "v3": 50.9, "v4": 90, "v6": 481.0, "count": 2}
+
+        point = exporter._build_data_point(make_inverter())
+
+        assert point == "20240115,12:00,100,150,50,45,,240.5,,,,,,"
+
+    def test_without_cumulative_flag_energy_fields_are_averaged(self):
+        exporter = _configured_exporter(VALID_CONFIG)
+        exporter.collected_data = {"v1": 100, "v3": 50, "count": 2}
+
+        assert exporter._build_data_point(make_inverter()) == "20240115,12:00,50,,25,,,,,,,,,"
+
+
+class TestBatchLimit:
+    def test_over_30_points_drops_the_oldest(self):
+        exporter = _configured_exporter({**VALID_CONFIG, "batch_points": 100})
+        exporter.batch_data = [f"old{i}" for i in range(30)]
+
+        with patch("sungather.exports.pvoutput.time.time", return_value=99999):
+            assert exporter.publish(make_inverter()) is True
+
+        assert len(exporter.batch_data) == 30
+        assert exporter.batch_data[0] == "old1"
+
+    def test_up_to_30_points_are_all_kept(self):
+        exporter = _configured_exporter({**VALID_CONFIG, "batch_points": 100})
+        exporter.batch_data = [f"old{i}" for i in range(29)]
+
+        with patch("sungather.exports.pvoutput.time.time", return_value=99999):
+            assert exporter.publish(make_inverter()) is True
+
+        assert len(exporter.batch_data) == 30
+        assert exporter.batch_data[0] == "old0"

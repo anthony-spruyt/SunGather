@@ -8,6 +8,7 @@ NO_CRYPTO1 = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 NO_CRYPTO2 = b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
 GET_KEY = b"\x68\x68\x00\x00\x00\x06\xf7\x04\x0a\xe7\x00\x08"
 HEADER = bytes([0x68, 0x68])
+CRYPTO_HEADER_LEN = 4
 
 
 class SungrowModbusTcpClient(ModbusTcpClient):
@@ -39,7 +40,7 @@ class SungrowModbusTcpClient(ModbusTcpClient):
             super().send(GET_KEY)
             self._key_packet = super().recv(25)
             self._pub_key = self._key_packet[9:]
-            if (len(self._pub_key) == 16) and (self._pub_key != NO_CRYPTO1) and (self._pub_key != NO_CRYPTO2):
+            if len(self._pub_key) == AES.block_size and self._pub_key not in (NO_CRYPTO1, NO_CRYPTO2):
                 self._setup()
             else:
                 self._key = b"no encryption"
@@ -83,8 +84,8 @@ class SungrowModbusTcpClient(ModbusTcpClient):
 
     def _recv_decipher(self, size):
         if len(self._fifo) == 0:
-            header = super().recv(4)
-            if header and len(header) == 4:
+            header = super().recv(CRYPTO_HEADER_LEN)
+            if header and len(header) == CRYPTO_HEADER_LEN:
                 packet_len = int(header[2])
                 padding = int(header[3])
                 length = packet_len + padding

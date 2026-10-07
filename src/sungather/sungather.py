@@ -69,7 +69,7 @@ def _setup_logging(config_inverter, loglevel, logfolder):
         valid_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
         if config_inverter["log_file"] in valid_log_levels:
             logfile = logfolder + "SunGather.log"
-            fh = logging.handlers.RotatingFileHandler(  # Log 10mb files, 10 x files = 100mb
+            fh = logging.handlers.RotatingFileHandler(
                 logfile, mode="w", encoding="utf-8", maxBytes=10485760, backupCount=10
             )
             fh.formatter = logger.handlers[0].formatter
@@ -79,7 +79,7 @@ def _setup_logging(config_inverter, loglevel, logfolder):
             logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
 
     logging.info("Logging to console set to: %s", logging.getLevelName(logger.handlers[0].level))
-    if len(logger.handlers) == 3:
+    if len(logger.handlers) == 3:  # noqa: PLR2004 - basicConfig, console and file handlers
         logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[2].level))
 
 
@@ -183,7 +183,7 @@ def _parse_args():
             logfolder = arg
         elif opt == "-v":
             if arg.isnumeric():
-                if 0 <= int(arg) <= 50:
+                if 0 <= int(arg) <= logging.CRITICAL:
                     loglevel = int(arg)
                 else:
                     logging.error("Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error")
