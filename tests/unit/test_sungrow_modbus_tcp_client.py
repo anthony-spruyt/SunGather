@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sungather.client.sungrow_modbus_tcp_client import SungrowModbusTcpClient
 
 
@@ -95,3 +97,47 @@ class TestEncryptionSetupRestore:
         assert plain == b"\x68\x68" + request[2:] + b"\xff" * 4
         assert client._transactionID == request[:2]
         assert result == len(request)
+
+
+def _cipher_client():
+    client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
+    client._priv_key = b"Grow#0*2Sun68CbE"
+    client._pub_key = b"\x01" * 16
+    client._use_cipher = False
+    client._setup()
+    return client
+
+
+class TestCipherFullBlockPadding:
+    @pytest.mark.parametrize("length", [16, 32])
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    def test_send_cipher_adds_a_whole_0xff_block_to_a_block_aligned_frame(self, mock_init, length):
+        client = _cipher_client()
+        request = b"\x00\x07" + bytes(range(1, length - 1))
+
+        with patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.send", side_effect=len) as mock_send:
+            result = client._send_cipher(request)
+
+        sent = mock_send.call_args.args[0]
+        assert sent[:4] == bytes([1, 0, length, 16])
+        assert len(sent) == 4 + length + 16
+        assert client._aes_ecb.decrypt(sent[4:]) == b"\x68\x68" + request[2:] + b"\xff" * 16
+        assert result == length
+
+    @pytest.mark.parametrize("length", [16, 32])
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    def test_recv_decipher_strips_a_whole_padding_block(self, mock_init, length):
+        client = _cipher_client()
+        client._fifo = b""
+        client._transactionID = b"\x00\x07"
+        response = b"\x68\x68" + bytes(range(1, length - 1))
+        reply = [bytes([1, 0, length, 16]), client._aes_ecb.encrypt(response + b"\xff" * 16)]
+
+        with patch(
+            "sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.recv", side_effect=lambda size: reply.pop(0)
+        ) as mock_recv:
+            received = client._recv_decipher(length)
+
+        assert [c.args[0] for c in mock_recv.call_args_list] == [4, length + 16]
+        assert received == b"\x00\x07" + response[2:]
+        assert client._fifo == b""
