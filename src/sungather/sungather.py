@@ -12,6 +12,9 @@ import yaml
 from sungather.client.sungrow_client import SungrowClient
 from sungather.version import __version__
 
+# Follows the basicConfig and console handlers set up at import time
+_FILE_HANDLER_INDEX = 2
+
 
 def _load_config(configfilename, registersfilename):
     """Load and return (configfile, registersfile) from YAML files."""
@@ -79,8 +82,8 @@ def _setup_logging(config_inverter, loglevel, logfolder):
             logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
 
     logging.info("Logging to console set to: %s", logging.getLevelName(logger.handlers[0].level))
-    if len(logger.handlers) == 3:  # noqa: PLR2004 - basicConfig, console and file handlers
-        logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[2].level))
+    if len(logger.handlers) == _FILE_HANDLER_INDEX + 1:
+        logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[_FILE_HANDLER_INDEX].level))
 
 
 def _load_exports(configfile, inverter):
