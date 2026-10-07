@@ -141,3 +141,32 @@ class TestCipherFullBlockPadding:
         assert [c.args[0] for c in mock_recv.call_args_list] == [4, length + 16]
         assert received == b"\x00\x07" + response[2:]
         assert client._fifo == b""
+
+
+class TestGetKey:
+    @pytest.mark.parametrize(
+        ("pub_key", "use_cipher"),
+        [
+            (b"\x01" * 16, True),
+            (b"\x00" * 16, False),
+            (b"\xff" * 16, False),
+            (b"\x01" * 15, False),
+        ],
+    )
+    @patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.__init__", return_value=None)
+    def test_getkey_enables_cipher_only_for_a_real_16_byte_key(self, mock_init, pub_key, use_cipher):
+        client = SungrowModbusTcpClient.__new__(SungrowModbusTcpClient)
+        client._priv_key = b"Grow#0*2Sun68CbE"
+        client._key = None
+        client._fifo = b""
+
+        with (
+            patch("sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.send"),
+            patch(
+                "sungather.client.sungrow_modbus_tcp_client.ModbusTcpClient.recv", return_value=b"\x00" * 9 + pub_key
+            ),
+        ):
+            client._getkey()
+
+        assert client._use_cipher is use_cipher
+        assert (client._key == b"no encryption") is not use_cipher

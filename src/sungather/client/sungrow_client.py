@@ -14,6 +14,10 @@ from sungather.version import __version__
 from .sungrow_modbus_tcp_client import SungrowModbusTcpClient
 from .sungrow_modbus_web_client import SungrowModbusWebClient
 
+ALL_REGISTERS_LEVEL = 3
+NO_VALUE_WORD = 0xFFFF
+S16_SIGN_THRESHOLD = 32767
+
 
 class SungrowClient:
     def __init__(self, config_inverter):
@@ -133,14 +137,14 @@ class SungrowClient:
         smart_meter = self.inverter_config.get("smart_meter")
 
         for register in raw_registers:
-            if not (register.get("level", 3) <= level or level == 3):
+            if not (register.get("level", ALL_REGISTERS_LEVEL) <= level or level == ALL_REGISTERS_LEVEL):
                 continue
             register["type"] = reg_type
             register.pop("level")
             if register.get("smart_meter") and smart_meter:
                 register.pop("models")
                 self.registers.append(register)
-            elif register.get("models") and level != 3:
+            elif register.get("models") and level != ALL_REGISTERS_LEVEL:
                 for supported_model in register.get("models"):
                     if supported_model == model:
                         register.pop("models")
@@ -173,7 +177,6 @@ class SungrowClient:
         return False
 
     def configure_registers(self, registersfile) -> bool:
-        # Check model so we can load only valid registers
         if self.inverter_config.get("model"):
             logging.info("Bypassing Model Detection, Using config: %s", self.inverter_config.get("model"))
         else:
@@ -232,14 +235,14 @@ class SungrowClient:
         datatype = register.get("datatype")
 
         if datatype == "U16":
-            if register_value == 0xFFFF:
+            if register_value == NO_VALUE_WORD:
                 register_value = 0
             if register.get("mask"):
                 register_value = 1 if (register_value & register.get("mask")) != 0 else 0
         elif datatype == "S16":
             if register_value in (0xFFFF, 0x7FFF):
                 register_value = 0
-            if register_value >= 32767:  # Anything > 32767 is negative for 16bit
+            if register_value >= S16_SIGN_THRESHOLD:
                 register_value = register_value - 65536
         elif datatype == "U32":
             register_value = self._decode_u32(register_value, raw_registers[index + 1])
@@ -255,16 +258,16 @@ class SungrowClient:
 
     def _decode_u32(self, low, high):
         """Decode U32 value from two 16-bit words."""
-        if low == 0xFFFF and high == 0xFFFF:
+        if low == NO_VALUE_WORD and high == NO_VALUE_WORD:
             return 0
         return low + high * 0x10000
 
     def _decode_s32(self, low, high):
         """Decode S32 value from two 16-bit words."""
         s32_zero = high in (0xFFFF, 0x7FFF)
-        if low == 0xFFFF and s32_zero:
+        if low == NO_VALUE_WORD and s32_zero:
             return 0
-        if high >= 32767:  # Anything greater than 32767 is a negative
+        if high >= S16_SIGN_THRESHOLD:
             return low + high * 0x10000 - 0xFFFFFFFF - 1
         return low + high * 0x10000
 
@@ -272,7 +275,6 @@ class SungrowClient:
         """Decode a raw register value with datatype conversion, datarange, and accuracy."""
         register_value = self._decode_datatype(register, raw_registers, index)
 
-        # We convert a system response to a human value
         if register.get("datarange"):
             match = False
             for value in register.get("datarange"):
@@ -512,7 +514,6 @@ class SungrowClient:
     def scrape(self) -> bool:
         scrape_start = datetime.now()
 
-        # Clear previous inverter values, persist some values
         persist_registers = {
             "run_state": self.latest_scrape.get("run_state", "ON"),
             "last_reset": self.latest_scrape.get("last_reset", ""),

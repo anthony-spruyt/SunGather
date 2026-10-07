@@ -12,6 +12,9 @@ import yaml
 from sungather.client.sungrow_client import SungrowClient
 from sungather.version import __version__
 
+# Follows the basicConfig and console handlers set up at import time
+_FILE_HANDLER_INDEX = 2
+
 
 def _load_config(configfilename, registersfilename):
     """Load and return (configfile, registersfile) from YAML files."""
@@ -69,7 +72,7 @@ def _setup_logging(config_inverter, loglevel, logfolder):
         valid_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR"}
         if config_inverter["log_file"] in valid_log_levels:
             logfile = logfolder + "SunGather.log"
-            fh = logging.handlers.RotatingFileHandler(  # Log 10mb files, 10 x files = 100mb
+            fh = logging.handlers.RotatingFileHandler(
                 logfile, mode="w", encoding="utf-8", maxBytes=10485760, backupCount=10
             )
             fh.formatter = logger.handlers[0].formatter
@@ -79,8 +82,8 @@ def _setup_logging(config_inverter, loglevel, logfolder):
             logging.warning("log_file: Valid options are: DEBUG, INFO, WARNING, ERROR and OFF")
 
     logging.info("Logging to console set to: %s", logging.getLevelName(logger.handlers[0].level))
-    if len(logger.handlers) == 3:
-        logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[2].level))
+    if len(logger.handlers) == _FILE_HANDLER_INDEX + 1:
+        logging.info("Logging to file set to: %s", logging.getLevelName(logger.handlers[_FILE_HANDLER_INDEX].level))
 
 
 def _load_exports(configfile, inverter):
@@ -183,7 +186,7 @@ def _parse_args():
             logfolder = arg
         elif opt == "-v":
             if arg.isnumeric():
-                if 0 <= int(arg) <= 50:
+                if 0 <= int(arg) <= logging.CRITICAL:
                     loglevel = int(arg)
                 else:
                     logging.error("Valid verbose options: 10=Debug, 20=Info, 30=Warning (default), 40=Error")

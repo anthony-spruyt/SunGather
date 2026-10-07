@@ -164,6 +164,16 @@ class TestLoadRegistersS32:
 
         assert client.latest_scrape["test_s32"] == -65536
 
+    def test_s32_high_word_0x7fff_is_negative(self):
+        client = make_client()
+        client.client = MagicMock()
+        client.registers = [{"name": "test_s32", "type": "read", "address": 1, "datatype": "S32"}]
+        client.client.read_input_registers.return_value = make_mock_response([0, 0x7FFF])
+
+        client.load_registers("read", 0, 2)
+
+        assert client.latest_scrape["test_s32"] == 0x7FFF0000 - 0x100000000
+
 
 class TestLoadRegistersDatarange:
     """Datarange (enum) mapping."""
