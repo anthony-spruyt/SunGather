@@ -24,10 +24,18 @@ jobs:
       language: "python"
       image: "sungather"
       test-command: "docker run --rm --network none \"$IMAGE_REF\" /opt/virtualenv/bin/sungather -h"
+  repo:
+    needs:
+      - "lint"
+    permissions:
+      contents: "read"
+    uses: "./.github/workflows/ci-repo.yaml"
+    secrets: "inherit"
   summary:
     needs:
       - "lint"
       - "image"
+      - "repo"
     if: "always()"
     permissions:
       actions: "read"
