@@ -14,7 +14,7 @@ permissions:
   attestations: "write"
 jobs:
   release:
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_release-please.yaml@8e7d66f8fd86d59d9b65b28d567844821bea019e"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_release-please.yaml@b5ea71d349323dc58c83a432fff57f2d2bf1b39f"
     with:
       language: "python"
       image: "sungather"
