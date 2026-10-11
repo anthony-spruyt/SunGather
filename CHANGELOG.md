@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.0.1](https://github.com/anthony-spruyt/SunGather/compare/v3.0.0...v3.0.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **deps:** update container image python to 3.14 ([#409](https://github.com/anthony-spruyt/SunGather/issues/409)) ([b16d8f0](https://github.com/anthony-spruyt/SunGather/commit/b16d8f07ab19187ebd076fdf122f8d2627ea3f18))
+* **deps:** update container image python to 3.14-slim ([#410](https://github.com/anthony-spruyt/SunGather/issues/410)) ([fbbcd9f](https://github.com/anthony-spruyt/SunGather/commit/fbbcd9fc48cbe001d31462dc12c1bf9c3069f918))
+
+
+### Code Refactoring
+
+* prepare for ruff PLR rules ([#406](https://github.com/anthony-spruyt/SunGather/issues/406)) ([e4038cb](https://github.com/anthony-spruyt/SunGather/commit/e4038cb5128719ccdcb05dbf623ac1f50f3cf6b1))
+
 ## [3.0.0](https://github.com/anthony-spruyt/SunGather/compare/v2.0.1...v3.0.0) (2026-10-06)
 
 
