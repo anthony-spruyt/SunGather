@@ -1,0 +1,5 @@
+---
+# apt-get upgrade in the runtime stage and uv sync in the builder
+egress:
+  - deb.debian.org:80
+  - files.pythonhosted.org:443
