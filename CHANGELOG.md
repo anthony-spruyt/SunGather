@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/anthony-spruyt/SunGather/compare/v3.0.1...v3.0.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* **deps:** update container image ghcr.io/astral-sh/uv to v0.13.1 ([#419](https://github.com/anthony-spruyt/SunGather/issues/419)) ([7119088](https://github.com/anthony-spruyt/SunGather/commit/7119088ea61778019ed34618c5577689be316593))
+
 ## [3.0.1](https://github.com/anthony-spruyt/SunGather/compare/v3.0.0...v3.0.1) (2026-10-10)
 
 
