@@ -1,3 +1,13 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "pep621": {
+    "lockFileMaintenance": { "enabled": true }
+  },
+  "packageRules": [
+    {
+      "description": "Lock file maintenance releases a patch like other dependency bumps; the shared fix(deps) rule matches dep types, which lock file maintenance lacks",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "semanticCommitType": "fix"
+    }
+  ]
 }

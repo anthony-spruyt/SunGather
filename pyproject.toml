@@ -32,6 +32,9 @@ dev = [
     "pytest>=8.0",
 ]
 
+[tool.uv]
+exclude-newer = "7 days"
+
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
 markers = [
