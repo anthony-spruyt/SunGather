@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.3](https://github.com/anthony-spruyt/SunGather/compare/v3.0.2...v3.0.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** lock file maintenance ([#426](https://github.com/anthony-spruyt/SunGather/issues/426)) ([a90b670](https://github.com/anthony-spruyt/SunGather/commit/a90b670c5dfcce24e7017dfe1a5352c5f2c2ac3f))
+* **deps:** update container image python to v ([#429](https://github.com/anthony-spruyt/SunGather/issues/429)) ([563a269](https://github.com/anthony-spruyt/SunGather/commit/563a269c1c0de0c9de365757094ae68ee254d11f))
+* **deps:** update container image python to v ([#430](https://github.com/anthony-spruyt/SunGather/issues/430)) ([24b1bd2](https://github.com/anthony-spruyt/SunGather/commit/24b1bd2f2a2974747540e2c0de9b829742021810))
+
 ## [3.0.2](https://github.com/anthony-spruyt/SunGather/compare/v3.0.1...v3.0.2) (2026-10-15)
 
 
