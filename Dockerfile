@@ -1,4 +1,4 @@
-FROM python:3.14@sha256:b25fce02c0702d1998647d1cd6f4998fbd4859f444476aab41528a48c4b7feaa AS builder
+FROM python:3.14@sha256:b3ae2372f3c9b7f0a80ec21d1ae931002ea056509e04c5072f144efe9694732f AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 /uv /usr/local/bin/uv
 
