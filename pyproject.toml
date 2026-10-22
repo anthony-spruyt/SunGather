@@ -1,6 +1,6 @@
 [project]
 name = "sungather"
-version = "3.0.2"
+version = "3.0.3"
 description = "Collect data from Sungrow inverters and feed it to MQTT, InfluxDB, PVOutput and Home Assistant"
 readme = "README.md"
 license-files = ["LICENSE"]
