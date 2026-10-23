@@ -34,6 +34,8 @@ dev = [
 
 [tool.uv]
 exclude-newer = "7 days"
+# Remove once certifi 2026.10.19 is older than 7 days; the fixed cutoff blocks later certifi releases
+exclude-newer-package = { certifi = "2026-10-21T00:00:00Z" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
