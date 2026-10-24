@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.4](https://github.com/anthony-spruyt/SunGather/compare/v3.0.3...v3.0.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** replace container image ghcr.io/astral-sh/uv to 0.13.5 ([#442](https://github.com/anthony-spruyt/SunGather/issues/442)) ([429a3d8](https://github.com/anthony-spruyt/SunGather/commit/429a3d84db05ffe13491842bad72e911645ef6f9))
+* **deps:** update certifi to 2026.10.23 ([#444](https://github.com/anthony-spruyt/SunGather/issues/444)) ([660e5f2](https://github.com/anthony-spruyt/SunGather/commit/660e5f231a94032c75740f99f675387acf952996))
+* **deps:** update container image ghcr.io/astral-sh/uv to v0.13.5 ([#439](https://github.com/anthony-spruyt/SunGather/issues/439)) ([0d47ed6](https://github.com/anthony-spruyt/SunGather/commit/0d47ed6fbbad0244318207279068ba074ce85f57))
+* **deps:** update container image python to v ([#434](https://github.com/anthony-spruyt/SunGather/issues/434)) ([a20c0e4](https://github.com/anthony-spruyt/SunGather/commit/a20c0e439437e98d1580b06789865eed703d8aa4))
+* **deps:** update container image python to v ([#435](https://github.com/anthony-spruyt/SunGather/issues/435)) ([ae1ead0](https://github.com/anthony-spruyt/SunGather/commit/ae1ead0f8ca4dec976967de6c0e6c3fd72fa558b))
+
 ## [3.0.3](https://github.com/anthony-spruyt/SunGather/compare/v3.0.2...v3.0.3) (2026-10-21)
 
 
