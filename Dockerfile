@@ -25,6 +25,10 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && useradd -r -m -u 999 sungather
 
+# Nothing installs packages at runtime, so pip stays out of the image.
+RUN python -m pip uninstall --yes --root-user-action=ignore pip \
+ && rm -f /usr/local/bin/pip
+
 COPY --from=builder /opt/virtualenv /opt/virtualenv
 
 WORKDIR /opt/sungather
