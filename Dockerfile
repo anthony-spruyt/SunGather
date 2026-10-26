@@ -19,11 +19,14 @@ RUN uv sync --frozen --no-build --no-dev --no-editable
 
 FROM python:3.14-slim@sha256:0214bda9af2652a418f2bf34373a4d3ca00a5f4784081e040049433ac9cc79d5
 
+# Nothing installs packages at runtime, so pip stays out of the image.
 # hadolint ignore=DL3027,DL3008
 RUN apt-get update \
  && apt-get upgrade -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/* \
- && useradd -r -m -u 999 sungather
+ && useradd -r -m -u 999 sungather \
+ && python -m pip uninstall --yes --root-user-action=ignore pip \
+ && rm -f /usr/local/bin/pip
 
 COPY --from=builder /opt/virtualenv /opt/virtualenv
 
