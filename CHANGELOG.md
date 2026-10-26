@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.5](https://github.com/anthony-spruyt/SunGather/compare/v3.0.4...v3.0.5) (2026-10-26)
+
+
+### Bug Fixes
+
+* **deps:** lock file maintenance ([#451](https://github.com/anthony-spruyt/SunGather/issues/451)) ([da44105](https://github.com/anthony-spruyt/SunGather/commit/da44105dae9e3b2bc60c8429651efe802597fdfd))
+* **docker:** leave pip out of the runtime image ([#449](https://github.com/anthony-spruyt/SunGather/issues/449)) ([f62cb1e](https://github.com/anthony-spruyt/SunGather/commit/f62cb1e4c16f2ae22fdb4378f24a962fd3b9334c))
+
 ## [3.0.4](https://github.com/anthony-spruyt/SunGather/compare/v3.0.3...v3.0.4) (2026-10-24)
 
 
