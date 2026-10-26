@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.5](https://github.com/anthony-spruyt/SunGather/compare/v3.0.4...v3.0.5) (2026-10-26)
+
+
+### Bug Fixes
+
+* **docker:** leave pip out of the runtime image ([#449](https://github.com/anthony-spruyt/SunGather/issues/449)) ([f62cb1e](https://github.com/anthony-spruyt/SunGather/commit/f62cb1e4c16f2ae22fdb4378f24a962fd3b9334c))
+
 ## [3.0.4](https://github.com/anthony-spruyt/SunGather/compare/v3.0.3...v3.0.4) (2026-10-24)
 
 
