@@ -35,7 +35,7 @@ class TestScrapeTimestamp:
         def fake_load(_reg_type, _start, _count):
             client.latest_scrape.update(
                 {
-                    "year": 2026,
+                    "year": 2001,
                     "month": 3,
                     "day": 28,
                     "hour": 12,
@@ -52,13 +52,13 @@ class TestScrapeTimestamp:
 
         client.load_registers = MagicMock(side_effect=fake_load)
 
+        before = datetime.now().replace(microsecond=0)
         result = client.scrape()
+        after = datetime.now()
 
         assert result is True
-        assert "timestamp" in client.latest_scrape
-        ts = client.latest_scrape["timestamp"]
-        parsed = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-        assert parsed.year == datetime.now().year
+        parsed = datetime.strptime(client.latest_scrape["timestamp"], "%Y-%m-%d %H:%M:%S")
+        assert before <= parsed <= after
 
     def test_uses_inverter_time_when_not_local(self):
         client = make_client(use_local_time=False)
@@ -213,12 +213,7 @@ class TestScrapeDisconnectOnFailure:
 
 
 class TestScrapeRunState:
-    """run_state computation based on start_stop and work_state_1.
-
-    The original code used `.contains('Run')` which is not a Python string method.
-    This was a bug that caused run_state to always retain the persisted default 'ON'.
-    The fix replaces `.contains('Run')` with `'Run' in work_state`.
-    """
+    """run_state computation based on start_stop and work_state_1."""
 
     def test_run_state_is_on_when_running(self):
         """run_state is 'ON' when start_stop='Start' and work_state_1 contains 'Run'."""
@@ -247,8 +242,6 @@ class TestScrapeRunState:
 
         client.scrape()
 
-        # Fixed: 'Run' in work_state correctly evaluates to True,
-        # so run_state is correctly set to 'ON'.
         assert client.latest_scrape["run_state"] == "ON"
 
     def test_run_state_is_off_when_stopped(self):

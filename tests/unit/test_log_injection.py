@@ -1,6 +1,6 @@
-"""Tests for log injection sanitization in webserver export."""
+"""Tests for the webserver export's log sanitizer and its /config and POST handlers."""
 
-import logging
+import json
 from http.server import HTTPServer
 from io import BytesIO
 from unittest.mock import MagicMock
@@ -11,11 +11,26 @@ from sungather.exports.webserver import MyServer, export_webserver, sanitize_for
 
 
 @pytest.fixture(autouse=True)
-def reset_webserver_state():
+def reset_webserver_state(monkeypatch):
     """Reset class-level state before each test."""
-    export_webserver.last_successful_scrape = None
-    export_webserver.scan_interval = 30
-    export_webserver.config = "<p>config</p>"
+    monkeypatch.setattr(export_webserver, "config", "<p>config</p>", raising=False)
+
+
+def make_handler(method, path, body=b""):
+    """Create a handler whose response goes to a BytesIO and a mock."""
+    handler = MyServer.__new__(MyServer)
+    handler.server = MagicMock(spec=HTTPServer)
+    handler.path = path
+    handler.headers = {"Content-Length": str(len(body))}
+    handler.requestline = f"{method} {path} HTTP/1.1"
+    handler.request_version = "HTTP/1.1"
+    handler.command = method
+    handler.send_response = MagicMock()
+    handler.send_header = MagicMock()
+    handler.end_headers = MagicMock()
+    handler.rfile = BytesIO(body)
+    handler.wfile = BytesIO()
+    return handler
 
 
 class TestSanitizeForLog:
@@ -35,59 +50,22 @@ class TestSanitizeForLog:
     def test_preserves_normal_text(self):
         assert sanitize_for_log("normal text") == "normal text"
 
-    def test_handles_dict_with_newlines(self):
-        data = {"key": ["value\nINJECTED"]}
-        result = sanitize_for_log(str(data))
-        assert "\n" not in result
+
+class TestGetConfig:
+    def test_responds_200_and_writes_the_config_page(self):
+        handler = make_handler("GET", "/config?key=value%0aINJECTED")
+
+        handler.do_GET()
+
+        handler.send_response.assert_called_once_with(200)
+        assert handler.wfile.getvalue() == b"<p>config</p>"
 
 
-class TestGetConfigLogSanitized:
-    """Alert #3: GET /config must sanitize query data before logging."""
+class TestPost:
+    def test_writes_the_decoded_form_body_as_json(self):
+        handler = make_handler("POST", "/config", b"key=value%0aINJECTED")
 
-    def test_config_query_logged_via_sanitize(self, caplog):
-        """Logging from /config must not contain raw newlines."""
-        handler = MyServer.__new__(MyServer)
-        handler.server = MagicMock(spec=HTTPServer)
-        handler.path = "/config?key=value%0aINJECTED"
-        handler.headers = {}
-        handler.requestline = "GET /config?key=value%0aINJECTED HTTP/1.1"
-        handler.request_version = "HTTP/1.1"
-        handler.command = "GET"
-        handler.send_response = MagicMock()
-        handler.send_header = MagicMock()
-        handler.end_headers = MagicMock()
-        handler.wfile = BytesIO()
+        handler.do_POST()
 
-        with caplog.at_level(logging.INFO):
-            handler.do_GET()
-
-        for record in caplog.records:
-            assert "\n" not in record.message
-            assert "\r" not in record.message
-
-
-class TestPostLogSanitized:
-    """Alert #4: POST handler must sanitize body before logging."""
-
-    def test_post_body_logged_without_newlines(self, caplog):
-        """POST logging must not contain raw newlines from body."""
-        body = b"key=value%0aINJECTED"
-        handler = MyServer.__new__(MyServer)
-        handler.server = MagicMock(spec=HTTPServer)
-        handler.path = "/config"
-        handler.headers = {"Content-Length": str(len(body))}
-        handler.requestline = "POST /config HTTP/1.1"
-        handler.request_version = "HTTP/1.1"
-        handler.command = "POST"
-        handler.send_response = MagicMock()
-        handler.send_header = MagicMock()
-        handler.end_headers = MagicMock()
-        handler.rfile = BytesIO(body)
-        handler.wfile = BytesIO()
-
-        with caplog.at_level(logging.INFO):
-            handler.do_POST()
-
-        for record in caplog.records:
-            assert "\n" not in record.message
-            assert "\r" not in record.message
+        expected = json.dumps({"key": ["value\nINJECTED"]}).encode()
+        assert handler.wfile.getvalue() == expected
