@@ -1,7 +1,4 @@
-"""Characterization tests for SungrowClient.configure_registers.
-
-These lock in current behavior before refactoring.
-"""
+"""Characterization tests for SungrowClient.configure_registers."""
 
 import os
 from unittest.mock import MagicMock
