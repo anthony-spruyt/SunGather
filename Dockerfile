@@ -1,4 +1,4 @@
-FROM python:3.14@sha256:b3ae2372f3c9b7f0a80ec21d1ae931002ea056509e04c5072f144efe9694732f AS builder
+FROM python:3.15@sha256:4df75c7aaf4687361abf29acab2b97fef332cbc9a0d1ca10e69e82d13ba5b00f AS builder
 
 COPY --from=docker.io/astral/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /usr/local/bin/uv
 
@@ -17,7 +17,7 @@ COPY README.md LICENSE ./
 COPY src/ ./src/
 RUN uv sync --frozen --no-build --no-dev --no-editable
 
-FROM python:3.14-slim@sha256:0214bda9af2652a418f2bf34373a4d3ca00a5f4784081e040049433ac9cc79d5
+FROM python:3.15-slim@sha256:7ce16513bf93a92cb89160580a412fa2735707ce2a312257b7a1fd8242cd11c6
 
 # Nothing installs packages at runtime, so pip stays out of the image.
 # hadolint ignore=DL3027,DL3008
