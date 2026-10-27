@@ -62,36 +62,19 @@ class TestConfigure:
 
 
 class TestPublish:
-    def test_publish_collects_and_posts_data(self):
-        """publish() collects inverter data and posts it when interval has elapsed."""
-        response_text = "SG10KTL,SG10KTL,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0;0;1618"
-        configure_response = _make_response(200, response_text)
-        publish_response = _make_response(200, "OK")
-        publish_response.status_code = 200
+    def test_publish_posts_the_data_point_it_built(self):
+        """publish() uploads the collected data point to addbatchstatus once the interval has elapsed."""
+        exporter = _configured_exporter(VALID_CONFIG)
 
-        call_count = 0
-
-        def post_side_effect(*_args, **_kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                return configure_response
-            return publish_response
-
-        # Patch time.time so the interval check passes (last_publish=0, now >> interval*60)
         with (
-            patch("sungather.exports.pvoutput.requests.post", side_effect=post_side_effect),
+            patch("sungather.exports.pvoutput.requests.post", return_value=_make_response(200, "OK")) as mock_post,
             patch("sungather.exports.pvoutput.time.time", return_value=99999),
         ):
-            from sungather.exports.pvoutput import export_pvoutput
+            assert exporter.publish(make_inverter()) is True
 
-            exporter = export_pvoutput()
-            inverter = make_inverter()
-            exporter.configure(VALID_CONFIG, inverter)
-            # status_interval comes from configure response (field index 15 = '5' minutes)
-            exporter.publish(inverter)
-            # At minimum, configure posted once; publish may post again
-            assert call_count >= 1
+        mock_post.assert_called_once()
+        assert mock_post.call_args.kwargs["url"] == exporter.url_addbatchstatus
+        assert mock_post.call_args.kwargs["params"]["data"] == "20240115,12:00,,5000,,,,,,,,,,"
 
 
 def _configured_exporter(config):

@@ -42,14 +42,13 @@ class TestConfigureRegistersWithKnownModel:
     """When model is pre-configured, skip model detection."""
 
     def test_skips_model_detection_when_model_set(self):
-        client = make_client(model="SG10KTL")
+        client = make_client(model="SG10KTL", serial_number="SN12345")
         registersfile = load_test_registers()
         client.load_registers = MagicMock(return_value=True)
 
-        result = client.configure_registers(registersfile)
+        client.configure_registers(registersfile)
 
-        assert result is True
-        assert client.inverter_config["model"] == "SG10KTL"
+        client.load_registers.assert_not_called()
 
     def test_loads_level_1_read_registers(self):
         client = make_client(model="SG10KTL", level=1)
