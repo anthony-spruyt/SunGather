@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.6](https://github.com/anthony-spruyt/SunGather/compare/v3.0.5...v3.0.6) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deps:** update container image docker.io/astral/uv to v0.13.6 ([#461](https://github.com/anthony-spruyt/SunGather/issues/461)) ([54c6010](https://github.com/anthony-spruyt/SunGather/commit/54c6010f360dcba43b8b7cb76a06be61a2d2c2e5))
+* **deps:** update container image python to 4b20dda ([#459](https://github.com/anthony-spruyt/SunGather/issues/459)) ([e51005b](https://github.com/anthony-spruyt/SunGather/commit/e51005b7f150d63e71a25f205d7039e1c9632373))
+* **deps:** update container image python to d48e576 ([#460](https://github.com/anthony-spruyt/SunGather/issues/460)) ([e357961](https://github.com/anthony-spruyt/SunGather/commit/e35796153f31f2a7af07d538c989ce1133629dde))
+
 ## [3.0.5](https://github.com/anthony-spruyt/SunGather/compare/v3.0.4...v3.0.5) (2026-10-26)
 
 
