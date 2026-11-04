@@ -1,4 +1,4 @@
-FROM python:3.14@sha256:d48e5769d4e252089917d2de8f918b33737713b0aab3bbdd5c430566bc01c560 AS builder
+FROM python:3.14@sha256:faf7953db05ee8e060aa9fda8a389e5779cdba26a22e1363379861023e910830 AS builder
 
 COPY --from=docker.io/astral/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 /uv /usr/local/bin/uv
 
