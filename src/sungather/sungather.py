@@ -58,6 +58,8 @@ def _build_inverter_config(configfile):
         "log_console": configfile["inverter"].get("log_console", "WARNING"),
         "log_file": configfile["inverter"].get("log_file", "OFF"),
         "level": configfile["inverter"].get("level", 1),
+        # SungrowClient skips serial detection when this is set; `serial` is the older documented key
+        "serial_number": configfile["inverter"].get("serial_number", configfile["inverter"].get("serial")),
     }
 
 
