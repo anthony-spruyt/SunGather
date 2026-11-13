@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.0.8](https://github.com/anthony-spruyt/SunGather/compare/v3.0.7...v3.0.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** lock file maintenance ([#476](https://github.com/anthony-spruyt/SunGather/issues/476)) ([ac90313](https://github.com/anthony-spruyt/SunGather/commit/ac9031311313bdf299fdd4039b2c7080eeb24768))
+* **deps:** update container image docker.io/astral/uv to v0.13.7 ([#480](https://github.com/anthony-spruyt/SunGather/issues/480)) ([284e5b5](https://github.com/anthony-spruyt/SunGather/commit/284e5b53716fbb5704d69824c1e5e0849ec2c8fb))
+
 ## [3.0.7](https://github.com/anthony-spruyt/SunGather/compare/v3.0.6...v3.0.7) (2026-11-05)
 
 
