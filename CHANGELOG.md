@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.9](https://github.com/anthony-spruyt/SunGather/compare/v3.0.8...v3.0.9) (2026-11-14)
+
+
+### Bug Fixes
+
+* **webserver:** show config and register values as plain text ([#484](https://github.com/anthony-spruyt/SunGather/issues/484)) ([52bd20c](https://github.com/anthony-spruyt/SunGather/commit/52bd20c4943888b61058e96f0317a627d796a1e4))
+
 ## [3.0.8](https://github.com/anthony-spruyt/SunGather/compare/v3.0.7...v3.0.8) (2026-11-13)
 
 
