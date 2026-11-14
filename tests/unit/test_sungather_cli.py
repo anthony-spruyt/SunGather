@@ -59,3 +59,21 @@ def test_setup_logging_skips_file_level_when_file_logging_off(monkeypatch, caplo
     with caplog.at_level(logging.INFO):
         module._setup_logging(config, None, "unused/")
     assert not any("Logging to file" in m for m in caplog.messages)
+
+
+def test_build_inverter_config_passes_configured_serial_through():
+    """A serial set in config reaches the client, so detection is skipped."""
+    module = importlib.import_module("sungather.sungather")
+    config = module._build_inverter_config({"inverter": {"host": "192.0.2.1", "serial_number": "A123"}})
+    assert config["serial_number"] == "A123"
+
+
+def test_build_inverter_config_accepts_legacy_serial_key():
+    module = importlib.import_module("sungather.sungather")
+    config = module._build_inverter_config({"inverter": {"host": "192.0.2.1", "serial": "A123"}})
+    assert config["serial_number"] == "A123"
+
+
+def test_build_inverter_config_leaves_serial_unset_for_detection():
+    module = importlib.import_module("sungather.sungather")
+    assert module._build_inverter_config({"inverter": {"host": "192.0.2.1"}})["serial_number"] is None

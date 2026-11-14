@@ -115,6 +115,45 @@ class TestPublish:
             exporter.mqtt_client.publish.assert_called()
 
 
+HA_CONFIG = {
+    **VALID_CONFIG,
+    "homeassistant": True,
+    "ha_sensors": [{"name": "Daily Generation", "sensor_type": "sensor", "register": "daily_power_yields"}],
+}
+
+
+class TestHomeAssistantDiscovery:
+    def _publish(self, serial):
+        _fresh_mqtt_export()
+        mock_paho, mock_paho_mqtt = _patched_mqtt_modules()
+        with patch.dict(
+            sys.modules,
+            {
+                "paho": mock_paho,
+                "paho.mqtt": mock_paho_mqtt,
+                "paho.mqtt.client": mock_paho_mqtt.client,
+            },
+        ):
+            from sungather.exports.mqtt import export_mqtt
+
+            exporter = export_mqtt()
+            inverter = make_inverter()
+            inverter.getSerialNumber.return_value = serial
+            exporter.configure(HA_CONFIG, inverter)
+            exporter.publish(inverter)
+            return [c.args[0] for c in exporter.mqtt_client.publish.call_args_list]
+
+    def test_discovery_uses_serial_in_topics(self):
+        topics = self._publish("TEST123")
+        assert "homeassistant/sensor/TEST123_daily_generation/config" in topics
+
+    def test_discovery_skipped_when_serial_unknown(self):
+        """No "None_*" discovery topics, which would give Home Assistant a duplicate device."""
+        topics = self._publish(None)
+        assert not [t for t in topics if t.startswith("homeassistant/")]
+        assert len(topics) == 1  # register data is still published
+
+
 class TestTls:
     def _configure(self, port):
         _fresh_mqtt_export()
