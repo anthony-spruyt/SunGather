@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.10](https://github.com/anthony-spruyt/SunGather/compare/v3.0.9...v3.0.10) (2026-11-14)
+
+
+### Bug Fixes
+
+* honour a configured serial number and skip HA discovery without one ([#479](https://github.com/anthony-spruyt/SunGather/issues/479)) ([2b2d107](https://github.com/anthony-spruyt/SunGather/commit/2b2d10752efcfd3bab20fb10b969fb34831e973c))
+
 ## [3.0.9](https://github.com/anthony-spruyt/SunGather/compare/v3.0.8...v3.0.9) (2026-11-14)
 
 
