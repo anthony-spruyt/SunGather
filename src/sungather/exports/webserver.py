@@ -1,5 +1,6 @@
 """Webserver export for SunGather — serves HTML, JSON, metrics, and health."""
 
+import html
 import json
 import logging
 import socket
@@ -17,11 +18,16 @@ def sanitize_for_log(value):
     return str(value).replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
 
 
+def _text(value):
+    """Encode a value so HTML shows it as plain text."""
+    return html.escape(str(value), quote=True)
+
+
 def _build_config_rows(items):
     """Build HTML table rows for config display."""
     rows = ""
     for setting, value in items:
-        s, v = str(setting), str(value)
+        s, v = _text(setting), _text(value)
         rows += (
             f'<tr><td><label for="{s}">{s}:</label></td>'
             f'<td><input type="text" id="{s}" name="{s}" '
@@ -98,7 +104,9 @@ class ExportWebserver:
         for register, value in inverter.latest_scrape.items():
             addr = str(inverter.getRegisterAddress(register))
             unit = str(inverter.getRegisterUnit(register))
-            main_body += f"<tr><td>{addr}</td><td>{register}</td><td>{value} {unit}</td></tr>"
+            main_body += (
+                f"<tr><td>{_text(addr)}</td><td>{_text(register)}</td><td>{_text(value)} {_text(unit)}</td></tr>"
+            )
             metrics_body += f'{register}{{address="{addr}", unit="{unit}"}} {value}\n'
             json_array["registers"][addr] = {
                 "register": str(register),
@@ -111,11 +119,11 @@ class ExportWebserver:
         main_body += "</p></p><table><tr><th>Configuration</th><th>Value</th></tr>"
         for setting, value in inverter.client_config.items():
             s, v = str(setting), str(value)
-            main_body += f"<tr><td>{s}</td><td>{v}</td></tr>"
+            main_body += f"<tr><td>{_text(s)}</td><td>{_text(v)}</td></tr>"
             json_array["client_config"][s] = v
         for setting, value in inverter.inverter_config.items():
             s, v = str(setting), str(value)
-            main_body += f"<tr><td>{s}</td><td>{v}</td></tr>"
+            main_body += f"<tr><td>{_text(s)}</td><td>{_text(v)}</td></tr>"
             json_array["inverter_config"][s] = v
         main_body += "</table></p>"
 
