@@ -347,6 +347,13 @@ class export_mqtt:
             logging.warning("MQTT: Server Error; Server not configured")
             return False
 
+        if self.mqtt_config["homeassistant"] and not self.ha_discovery_published and not self.serial_number:
+            # Every discovery topic and unique_id carries the serial; publishing "None" ones leaves a duplicate device
+            logging.warning(
+                "MQTT: Serial number unknown, skipping Home Assistant Discovery; set serial_number in config"
+            )
+            self.ha_discovery_published = True
+
         if self.mqtt_config["homeassistant"] and not self.ha_discovery_published:
             ha_device = {
                 "name": f"Sungrow {self.model}",
