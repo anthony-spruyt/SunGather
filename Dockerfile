@@ -17,7 +17,7 @@ COPY README.md LICENSE ./
 COPY src/ ./src/
 RUN uv sync --frozen --no-build --no-dev --no-editable
 
-FROM python:3.14-slim@sha256:ac25e5afbfdb4a94ff99cc24b0345719210133144481480bcba6085efa36a341
+FROM python:3.15-slim@sha256:fd2aef5e0d8438208de9fe154ab5b331a2428fc0c9838d41611e611fd7a80d85
 
 # Nothing installs packages at runtime, so pip stays out of the image.
 # hadolint ignore=DL3027,DL3008
