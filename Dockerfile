@@ -1,6 +1,6 @@
 FROM python:3.14@sha256:faf7953db05ee8e060aa9fda8a389e5779cdba26a22e1363379861023e910830 AS builder
 
-COPY --from=docker.io/astral/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 /uv /usr/local/bin/uv
+COPY --from=docker.io/astral/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /usr/local/bin/uv
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
